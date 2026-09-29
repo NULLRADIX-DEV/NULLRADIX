@@ -60,11 +60,23 @@ the dependency entirely, remove `initScroll()` from `src/main.js` - native
 
 ## Deploy
 
-Static. Build outputs `dist/`.
+Hosted as a container on the VPS (no longer Netlify).
 
-- **Netlify** - `netlify.toml` included (build `npm run build`, publish `dist`).
-- **Vercel** - auto-detects Vite.
-- **GitHub Pages** - for a *project* site set `base: '/NULLRADIX/'` in
-  `vite.config.js`; keep `'/'` for a user site or custom domain.
+- **Image** - `.github/workflows/image.yml` builds the `Dockerfile` (Node 22
+  builds `dist/`, `nginx:stable-alpine` serves it with `deploy/nginx.conf`).
+  Push to `main` pushes `ghcr.io/nullradix-dev/nullradix:<sha>` to GHCR; PRs
+  only build.
+- **Deploy** - push to `main`, wait for the Action, then run `.\deploy.ps1`
+  (default: current `origin/main`) or `.\deploy.ps1 -Tag <sha>` for a specific
+  commit / rollback. Nothing is built or copied locally.
+- **Prerequisites** - the server needs a one-time `docker login ghcr.io -u <github-user>`
+  with a Classic PAT (scope `read:packages` only; the packages are private).
+  `deploy.ps1` needs the SSH key `~/.ssh/id_ed25519` (or pass `-IdentityFile`).
+- **Server** - container `nullradix` (read-only, 64 MB limit) on
+  `127.0.0.1:8080`, behind the host nginx (TLS via certbot).
+  `www.nullradix.de` is proxied to the container; `nullradix.de` (apex)
+  redirects to `www` with a 301.
+
+`netlify.toml` is a leftover and unused.
 
 Add a real `public/og-image.png` (1200×630) for social cards.
