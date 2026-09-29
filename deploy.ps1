@@ -11,7 +11,7 @@
 
 .EXAMPLE
     .\deploy.ps1
-        Standard-Deploy nach root@195.20.225.12:/var/www/nullradix (Main-Server).
+        Standard-Deploy nach root@62.169.28.155:/var/www/nullradix (Main-Server).
 
 .EXAMPLE
     .\deploy.ps1 -SkipBuild
@@ -28,7 +28,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Server = "root@195.20.225.12",
+    [string]$Server = "root@62.169.28.155",
     [string]$AppDir = "/var/www/nullradix",
     [string]$IdentityFile = (Join-Path $env:USERPROFILE ".ssh\id_ed25519"),
     [string]$HealthHost = "www.nullradix.de",
@@ -74,7 +74,7 @@ try {
     $scp = Resolve-Exe 'scp'
     $ssh = Resolve-Exe 'ssh'
 
-    # Main-Server (195.20.225.12) laeuft ueber ~/.ssh/id_ed25519. Dort liegt AUCH die
+    # Main-Server (62.169.28.155) laeuft ueber ~/.ssh/id_ed25519. Dort liegt AUCH die
     # NOOSE-Prod (noose.info -> :5000). NULLRADIX hat einen EIGENEN nginx-Block
     # (server_name www.nullradix.de) und ein eigenes Verzeichnis; dieses Deploy
     # fasst ausschliesslich $AppDir an und laesst NOOSE komplett unberuehrt.
