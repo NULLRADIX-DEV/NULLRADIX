@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.git/
+.github/
+.claude/
+graphify-out/
+renders/
+*.tgz
+deploy.ps1
+run.cmd

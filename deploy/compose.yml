@@ -1,0 +1,18 @@
+# NULLRADIX auf dem VPS. Liegt auf dem Server unter /opt/nullradix/compose.yml, den Image-Tag
+# setzt deploy.ps1 in /opt/nullradix/.env. nginx auf dem Host leitet www.nullradix.de hierher.
+
+name: nullradix
+
+services:
+  web:
+    image: ghcr.io/nullradix-dev/nullradix:${TAG:?TAG fehlt in .env}
+    container_name: nullradix
+    ports:
+      - "127.0.0.1:8080:80"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    mem_limit: 64m
+    restart: unless-stopped
