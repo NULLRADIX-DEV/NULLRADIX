@@ -1,14 +1,12 @@
-# NULLRADIX auf dem VPS. Liegt auf dem Server unter /opt/nullradix/compose.yml, den Image-Tag
-# setzt deploy.ps1 in /opt/nullradix/.env. nginx auf dem Host leitet www.nullradix.de hierher.
-
-name: nullradix
+# NULLRADIX auf dem VPS, als App der gemeinsamen Plattform (eigener Benutzer, rootless Docker).
+# Ausgerollt per Workflow Deploy: der Server setzt APP_COMMIT (Image-Tag) und APP_PORT (Port der App).
+# nginx auf dem Host macht TLS und leitet www.nullradix.de hierher.
 
 services:
   web:
-    image: ghcr.io/nullradix-dev/nullradix:${TAG:?TAG fehlt in .env}
-    container_name: nullradix
+    image: ghcr.io/nullradix-dev/nullradix:${APP_COMMIT}
     ports:
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:${APP_PORT}:80"
     read_only: true
     tmpfs:
       - /var/cache/nginx
