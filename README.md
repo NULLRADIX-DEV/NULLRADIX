@@ -66,16 +66,15 @@ Hosted as a container on the VPS (no longer Netlify).
   builds `dist/`, `nginx:stable-alpine` serves it with `deploy/nginx.conf`).
   Push to `main` pushes `ghcr.io/nullradix-dev/nullradix:<sha>` to GHCR; PRs
   only build.
-- **Deploy** - push to `main`, wait for the Action, then run `.\deploy.ps1`
-  (default: current `origin/main`) or `.\deploy.ps1 -Tag <sha>` for a specific
-  commit / rollback. Nothing is built or copied locally.
-- **Prerequisites** - the server needs a one-time `docker login ghcr.io -u <github-user>`
-  with a Classic PAT (scope `read:packages` only; the packages are private).
-  `deploy.ps1` needs the SSH key `~/.ssh/id_ed25519` (or pass `-IdentityFile`).
-- **Server** - container `nullradix` (read-only, 64 MB limit) on
-  `127.0.0.1:8080`, behind the host nginx (TLS via certbot).
+- **Deploy** - after the image of a commit on `main` is built: Actions → Deploy →
+  Run workflow (empty = latest `main`, or a commit). Tick "rollback" to go back
+  to the previous release. The workflow is the shared platform template and
+  sends only `deploy/compose.yml`; the server checks and switches it and keeps
+  the previous release running if anything fails.
+- **Server** - the site runs read-only with a 64 MB limit in its own rootless
+  Docker on the shared VPS, behind the host nginx (TLS via certbot).
   `www.nullradix.de` is proxied to the container; `nullradix.de` (apex)
-  redirects to `www` with a 301.
+  redirects to `www` with a 301. Server details live in the private ops docs.
 
 `netlify.toml` is a leftover and unused.
 
