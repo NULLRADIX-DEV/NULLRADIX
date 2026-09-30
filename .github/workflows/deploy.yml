@@ -1,13 +1,19 @@
 name: Deploy
 
 # Template: NULLRADIX-DEV/platform/templates/deploy.yml. Every app repo carries an identical copy, change the template first.
-# Rolls out deploy/compose.yml of one commit on the default branch to the app's server, or rolls back to the
+# Rolls out the compose.yml of one commit on the default branch to the app's server, or rolls back to the
 # previous release. Starting this workflow by hand is the approval.
+# One environment per app: production for most repos, a repo with more apps adds one each (e.g. demo).
 # Secrets: DEPLOY_SSH_KEY (key that may only run receive), DEPLOY_TARGET (<app>@<server>), DEPLOY_KNOWN_HOSTS.
-# Public repos keep them in the environment production (default branch only), private repos as repository secrets.
+# Variable DEPLOY_DIR: folder of the compose.yml, default deploy.
+# Public repos keep them in the environment (default branch only), private repos as repository secrets and variables.
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: App to deploy, as environment of this repo
+        required: false
+        default: production
       commit:
         description: Commit on the default branch (empty = latest)
         required: false
@@ -21,7 +27,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy
+  group: deploy-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
@@ -29,7 +35,9 @@ jobs:
     name: Deploy to server
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    environment: production
+    environment: ${{ inputs.environment }}
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR || 'deploy' }}
     defaults:
       run:
         shell: bash
@@ -54,10 +62,10 @@ jobs:
           fi
           sha=$(git rev-parse --verify --quiet "${COMMIT:-origin/$DEFAULT_BRANCH}^{commit}") || { echo "::error::Unknown commit $COMMIT"; exit 1; }
           git merge-base --is-ancestor "$sha" "origin/$DEFAULT_BRANCH" || { echo "::error::$sha is not on $DEFAULT_BRANCH"; exit 1; }
-          git cat-file -e "$sha:deploy/compose.yml" 2> /dev/null || { echo "::error::$sha has no deploy/compose.yml"; exit 1; }
+          git cat-file -e "$sha:$DEPLOY_DIR/compose.yml" 2> /dev/null || { echo "::error::$sha has no $DEPLOY_DIR/compose.yml"; exit 1; }
           echo "SHA=$sha" >> "$GITHUB_ENV"
       # The key may only run the receive command on the server (forced command, platform README).
-      # A deploy sends only compose.yml; a rollback sends nothing, the server keeps the previous release.
+      # A deploy sends only the compose.yml; a rollback sends nothing, the server keeps the previous release.
       - name: Deploy
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -75,7 +83,7 @@ jobs:
           if [ "$ROLLBACK" = true ]; then
             remote rollback < /dev/null
           else
-            git archive --format=tar "$SHA:deploy" compose.yml | remote "deploy $SHA"
+            git archive --format=tar "$SHA:$DEPLOY_DIR" compose.yml | remote "deploy $SHA"
           fi | tee "$RUNNER_TEMP/deploy.log"
           deployed=$(sed -n 's/^Deployed //p' "$RUNNER_TEMP/deploy.log")
           previous=$(sed -n 's/^Previous release: //p' "$RUNNER_TEMP/deploy.log")
