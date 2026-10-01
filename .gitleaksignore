@@ -1,0 +1,10 @@
+# Findings in old commits that stay in the history on purpose (gitleaks fingerprint: commit:file:rule:line).
+# Never add a finding from a new commit here: remove the value instead and, for a secret, rotate it.
+30886145436362e6c2237e32858e74148e11c271:deploy.ps1:public-ipv4:14
+30886145436362e6c2237e32858e74148e11c271:deploy.ps1:public-ipv4:31
+30886145436362e6c2237e32858e74148e11c271:deploy.ps1:public-ipv4:77
+87c99432f8329e362f4b6e377c42094c86155840:deploy.ps1:public-ipv4:14
+87c99432f8329e362f4b6e377c42094c86155840:deploy.ps1:public-ipv4:31
+a6b0d7fc81f44f19f7eb02158b9c486712fd7654:deploy.ps1:public-ipv4:14
+a6b0d7fc81f44f19f7eb02158b9c486712fd7654:deploy.ps1:public-ipv4:31
+a6b0d7fc81f44f19f7eb02158b9c486712fd7654:deploy.ps1:public-ipv4:77
