@@ -164,6 +164,8 @@ export const MILESTONES = [0, 1, 2, 3, 4].map((i) => {
 // contact: everything implodes into C, the wordmark forms in the plane z = C.z
 export const IMPLODE_C = add3(W0, [0, -420, 0]);
 export const T_HOLD = 44.0, T_DOLLY = 45.0, T_IMPLODE = 45.9, T_DROP = 46.6;
+// the settled wordmark leaves the film and continues as a live, interactive swarm on the site
+export const WM_HANDOFF = [48.3, 48.6];
 
 /* ---------------- timeline ---------------- */
 export const SCENES = [
@@ -171,7 +173,7 @@ export const SCENES = [
   { id: 'about', t0: 7.5, t1: 16, label: 'How I work', anchorT: 8.7 },
   { id: 'work', t0: 16, t1: 34, label: 'Selected work', anchorT: 18.4 },
   { id: 'skills', t0: 34, t1: 44, label: 'Stack', anchorT: 36.0 },
-  { id: 'contact', t0: 44, t1: 50, label: 'Open channel', anchorT: 49.2 },
+  { id: 'contact', t0: 44, t1: 50, label: 'Open channel', anchorT: 49.2, stillT: 48.25 },
 ];
 export const sceneAt = (t) => SCENES.find((s) => t < s.t1) || SCENES.at(-1);
 

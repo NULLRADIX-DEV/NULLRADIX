@@ -17,6 +17,7 @@ import { createAbout } from './scenes/about.js';
 import { createWork } from './scenes/work.js';
 import { createSkills } from './scenes/skills.js';
 import { createContact } from './scenes/contact.js';
+import { createSwarmLayer } from './scenes/swarm.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
 import { qs, qsa } from './utils/dom.js';
@@ -57,6 +58,7 @@ function startFilm(anchors) {
   stage.add(createAbout());
   stage.add(createWork(anchors));
   stage.add(createSkills());
+  stage.add(createSwarmLayer());
   stage.add(createContact());
   stage.add(sound.update);
   motionToggle('Motion on', () => {
