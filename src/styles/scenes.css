@@ -557,6 +557,9 @@ body[data-mode='film'] .scene--contact .site-footer {
   body[data-mode='film'] .hero__title {
     font-size: clamp(2.4rem, 12.5vw, 6rem);
   }
+  body[data-mode='film'] .scroll-cue {
+    display: none;
+  }
   body[data-mode='film'] .about {
     left: 20px;
     right: 20px;

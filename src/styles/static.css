@@ -114,8 +114,3 @@ body[data-mode='static'] .contact {
 body[data-mode='static'] .scene--contact .site-footer {
   margin-top: var(--sp-24);
 }
-@media (max-width: 680px) {
-  body[data-mode='static'] .hud__nav {
-    display: none;
-  }
-}

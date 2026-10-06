@@ -35,7 +35,7 @@ function startFilm(anchors) {
   document.body.dataset.mode = 'film';
   const sound = createSound();
   stage = createStage({
-    onStatus: (s) => (document.body.dataset.film = s),
+    onStatus: (s) => (document.body.dataset.filmState = s),
     onFail: () => {
       stage?.destroy();
       stage = null;

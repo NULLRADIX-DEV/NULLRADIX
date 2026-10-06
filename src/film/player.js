@@ -21,8 +21,12 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
   let mode = 'webcodecs';
   let status = '';
   let loadedBytes = 0, totalBytes = 1;
-  let destroyed = false;
+  let destroyed = false, started = false;
   const cache = new Map(); // gop index -> ImageBitmap[]
+  // settles once the first frame can be shown (decoded bitmap or seeked <video>)
+  let first;
+  const firstFrame = new Promise((res, rej) => (first = { res, rej }));
+  firstFrame.catch(() => {});
   const gopCap = (navigator.deviceMemory || 4) >= 8 ? 4 : 2;
 
   const setStatus = (s) => {
@@ -36,13 +40,20 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
   const segOf = (f) => segs.find((s) => f >= s.first && f < s.first + s.count) || segs[segs.length - 1];
   const segDist = (s) => (target < s.first ? s.first - target : Math.max(0, target - (s.first + s.count - 1)));
 
+  // a failed download is not a broken film: callers wait and retry, only decode errors count
+  class NetError extends Error {}
   function loadSeg(s) {
     if (!s.promise) {
       s.promise = fetch(base + s.url)
-        .then((r) => {
-          if (!r.ok) throw new Error(`film: ${s.url} ${r.status}`);
-          return r.arrayBuffer();
-        })
+        .then(
+          (r) => {
+            if (!r.ok) throw new NetError(`film: ${s.url} ${r.status}`);
+            return r.arrayBuffer();
+          },
+          (e) => {
+            throw new NetError(`film: ${s.url} ${e?.message || e}`);
+          },
+        )
         .then((buf) => {
           s.buf = buf;
           s.mp4 = parseMp4(buf);
@@ -69,16 +80,15 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
       try {
         await loadSeg(next);
         failures = 0;
-      } catch (e) {
-        if (++failures > 4) return console.warn(e);
-        await new Promise((r) => setTimeout(r, 800 * failures));
+      } catch {
+        await new Promise((r) => setTimeout(r, Math.min(8000, 800 * ++failures)));
       }
     }
   }
 
   /* ---------------- WebCodecs ---------------- */
   let decoder = null, decoderKey = '', job = null, decodeErrors = 0;
-  let decoding = false;
+  let decoding = false, retryAt = 0;
 
   function ensureDecoder(mp4) {
     const key = mp4.codec + ':' + mp4.description.join(',');
@@ -86,6 +96,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
     if (!decoder || decoder.state === 'closed') {
       decoder = new VideoDecoder({
         output: (frame) => {
+          if (destroyed) return frame.close();
           const idx = Math.round((frame.timestamp * man.fps) / US);
           const j = job;
           const p = createImageBitmap(frame).then(
@@ -112,8 +123,10 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
       setStatus('buffering');
       await loadSeg(s);
     }
+    if (destroyed) return;
     ensureDecoder(s.mp4);
-    cache.set(g, new Array(man.gop));
+    const arr = new Array(man.gop);
+    cache.set(g, arr);
     const pending = [];
     job = pending;
     const li0 = f0 - s.first;
@@ -130,6 +143,10 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
     await decoder.flush();
     await Promise.all(pending);
     job = null;
+    if (destroyed) {
+      for (const b of arr) b?.close();
+      return;
+    }
     trimCache();
   }
 
@@ -143,7 +160,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
   }
 
   async function pump() {
-    if (decoding || destroyed || mode !== 'webcodecs' || !man) return;
+    if (decoding || destroyed || !started || mode !== 'webcodecs' || !man || performance.now() < retryAt) return;
     const g = Math.floor(target / man.gop);
     let want = null;
     if (!cache.has(g)) want = g;
@@ -157,15 +174,26 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
     try {
       await decodeGop(want);
       decodeErrors = 0;
+      if (bitmapAt(target) || cache.has(want)) first.res();
     } catch (e) {
-      console.warn('film decode', e);
+      for (const b of cache.get(want) || []) b?.close();
       cache.delete(want);
       job = null;
+      if (e instanceof NetError) {
+        // the network hiccuped: keep the decoder, show what we have and try again shortly
+        decoding = false;
+        setStatus('buffering');
+        retryAt = performance.now() + 900;
+        setTimeout(pump, 950);
+        return;
+      }
+      console.warn('film decode', e);
       try { decoder?.close(); } catch { /* already closed */ }
       decoder = null;
       if (++decodeErrors >= 2) await switchToVideo();
     }
     decoding = false;
+    if (destroyed) return;
     draw();
     pump();
   }
@@ -182,7 +210,10 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
       v.playsInline = true;
       v.preload = 'auto';
       v.src = URL.createObjectURL(new Blob([s.buf], { type: 'video/mp4' }));
-      v.addEventListener('error', () => setStatus('failed'), { once: true });
+      v.addEventListener('error', () => {
+        setStatus('failed');
+        first.rej(new Error('film: <video> fallback failed'));
+      }, { once: true });
       vids.set(s, v);
     }
     return v;
@@ -203,12 +234,21 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
     const f = target, s = segOf(f);
     if (!s.buf) {
       setStatus('buffering');
-      loadSeg(s).then(pumpVideo, () => {});
+      if (!s.waiting) {
+        s.waiting = true;
+        loadSeg(s).then(
+          () => ((s.waiting = false), pumpVideo()),
+          () => ((s.waiting = false), setTimeout(pumpVideo, 900)),
+        );
+      }
       return;
     }
     const v = videoFor(s);
     if (v.readyState < 1) {
-      v.addEventListener('loadedmetadata', pumpVideo, { once: true });
+      if (!v.waiting) {
+        v.waiting = true;
+        v.addEventListener('loadedmetadata', () => ((v.waiting = false), pumpVideo()), { once: true });
+      }
       return;
     }
     seeking = true;
@@ -216,7 +256,9 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
       'seeked',
       () => {
         seeking = false;
+        if (destroyed) return;
         paint(v, f);
+        first.res();
         setStatus('ready');
         if (target !== f) pumpVideo();
       },
@@ -228,7 +270,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
   /* ---------------- drawing ---------------- */
   // draw frame f, optionally cross-faded towards the next one (sub-frame scrolling stays fluid)
   function paint(src, f, next = null, a = 0) {
-    if (!fit) return;
+    if (!fit || destroyed) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.globalAlpha = 1;
     ctx.drawImage(src, fit.ox, fit.oy, man.width * fit.k, man.height * fit.k);
@@ -272,7 +314,16 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
     man = await (await fetch(base + 'manifest.json')).json();
     segs = man.segments.map((s) => ({ ...s, buf: null, mp4: null, promise: null }));
     totalBytes = segs.reduce((a, s) => a + s.bytes, 0) || 1;
-    await loadSeg(segs[0]);
+    for (let tries = 0; ; tries++) {
+      try {
+        await loadSeg(segs[0]);
+        break;
+      } catch (e) {
+        if (tries >= 3) throw e;
+        await new Promise((r) => setTimeout(r, 700 * (tries + 1)));
+      }
+    }
+    if (destroyed) return;
     loadRest();
     let ok = typeof VideoDecoder === 'function';
     if (ok) {
@@ -283,11 +334,10 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
         ok = false;
       }
     }
+    started = true;
     if (!ok) await switchToVideo();
-    else {
-      await decodeGop(0);
-      draw();
-    }
+    else pump();
+    await firstFrame;
   })();
 
   return {

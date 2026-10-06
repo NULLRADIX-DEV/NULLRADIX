@@ -35,7 +35,11 @@ export function mark(el, a, x, y) {
 export function splitChars(node) {
   const text = node.textContent.trim();
   node.textContent = '';
-  node.setAttribute('aria-label', text);
+  // screen readers get one plain copy; the animated glyphs are hidden from them
+  const plain = document.createElement('span');
+  plain.className = 'sr-only';
+  plain.textContent = text;
+  node.append(plain);
   const chars = [];
   text.split(' ').forEach((word, wi) => {
     if (wi) node.append(' ');

@@ -394,14 +394,18 @@ body[data-mode='film'].has-cursor .panel button {
   .hud__group {
     gap: var(--sp-4);
   }
+  /* phones keep the nav; the camera readout makes room for it */
   .hud__nav {
+    margin-left: auto;
+    margin-right: 0;
+    gap: var(--sp-3);
+    letter-spacing: 0.1em;
+  }
+  .hud__readout {
     display: none;
   }
   .hud__lens,
   .hud__buffer {
     display: none;
-  }
-  .hud__readout {
-    min-width: 0;
   }
 }

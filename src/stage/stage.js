@@ -22,13 +22,18 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
   const coarse = matchMedia('(pointer: coarse)').matches;
   const lenis = coarse ? null : new Lenis({ autoRaf: false, lerp: 0.085, wheelMultiplier: 0.85 });
   const subs = [];
+  const listen = new AbortController(); // every listener goes away with the stage
+  const on = { signal: listen.signal };
+  // the layout viewport: without the classic scrollbar, exactly what the fixed canvas covers
+  const viewW = () => document.documentElement.clientWidth;
+  const viewH = () => document.documentElement.clientHeight;
 
-  let vw = innerWidth, vh = innerHeight, unit = vh, lastW = vw;
+  let vw = viewW(), vh = viewH(), unit = vh, lastW = vw;
   let fmt = pickFormat(vw, vh);
   let world = W.makeWorld(fmt);
   let fit = coverFit(vw, vh, world.W, world.H, OVER);
   let player = null;
-  let t = T0, intro = null, raf = 0, last = 0, failed = false;
+  let t = T0, intro = null, raf = 0, last = 0, failed = false, selfFocus = false;
   const pointer = { x: vw / 2, y: vh / 2, nx: 0, ny: 0, tx: 0, ty: 0, inside: false };
 
   const scrollY = () => (lenis ? lenis.scroll : window.scrollY);
@@ -42,6 +47,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
       base: `/film/${fmt}/`,
       over: OVER,
       onStatus: (s) => {
+        if (player !== p) return; // a replaced player keeps quiet
         onStatus(s, p);
         if (s === 'failed') fail();
       },
@@ -50,6 +56,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
     p.ready.then(
       () => player === p && p.resize(vw, vh, devicePixelRatio),
       (e) => {
+        if (player !== p) return;
         console.warn('film unavailable', e);
         fail();
       },
@@ -69,6 +76,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
       const extra = i === sections.length - 1 ? unit : 0;
       s.style.height = `${Math.round((v1 - v0) * unit + extra)}px`;
     });
+    lenis?.resize(); // its scroll limit must know the new height before anything scrolls
   }
 
   function scrollToT(target, { immediate = false } = {}) {
@@ -90,15 +98,24 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
     e.preventDefault();
     scrollToT(sc ? sc.anchorT : T0);
     history.replaceState(null, '', `#${id}`);
-  });
+    // move keyboard focus with the camera, so Tab continues inside that scene
+    const heading = document.querySelector(`#${sc ? sc.id : 'top'} :is(h1, h2)`);
+    if (heading) {
+      heading.setAttribute('tabindex', '-1');
+      selfFocus = true;
+      heading.focus({ preventScroll: true });
+      selfFocus = false;
+    }
+  }, on);
 
   // keyboard focus inside a scene that is not on screen: bring the camera there
   document.addEventListener('focusin', (e) => {
+    if (selfFocus || !e.target.matches(':focus-visible')) return; // mouse clicks focus too - leave those alone
     const host = e.target.closest('[data-focus-t], [data-scene]');
     if (!host || e.target.closest('.hud, .panel')) return;
     const ft = host.dataset.focusT ? +host.dataset.focusT : W.SCENES.find((s) => s.id === host.dataset.scene)?.anchorT;
     if (ft != null && Math.abs(ft - t) > 0.5) scrollToT(ft, { immediate: true });
-  });
+  }, on);
 
   addEventListener('pointermove', (e) => {
     pointer.x = e.clientX;
@@ -106,20 +123,23 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
     pointer.tx = (e.clientX / vw) * 2 - 1;
     pointer.ty = (e.clientY / vh) * 2 - 1;
     pointer.inside = true;
-  });
+  }, on);
   document.documentElement.addEventListener('pointerleave', () => {
     pointer.inside = false;
     pointer.tx = pointer.ty = 0;
-  });
+  }, on);
 
-  addEventListener('resize', () => {
-    const keep = t;
-    vw = innerWidth;
-    vh = innerHeight;
+  // the fixed stage is the viewport minus scrollbars: watching it also catches the scrollbar appearing
+  const ro = new ResizeObserver(() => onResize());
+  ro.observe(canvas.parentElement);
+  function onResize() {
+    if (viewW() === vw && viewH() === vh) return;
+    const keep = intro ? null : scrollT(); // where the scroll is, not where the eased playhead lags
+    vw = viewW();
+    vh = viewH();
     // on touch screens the address bar changes the height while scrolling - only re-measure on real resizes
-    if (!coarse || vw !== lastW) unit = vh;
+    const newUnit = !coarse || vw !== lastW ? vh : unit;
     lastW = vw;
-    layout();
     const nf = pickFormat(vw, vh);
     if (nf !== fmt) {
       fmt = nf;
@@ -127,8 +147,12 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
       mountPlayer();
     } else player?.resize(vw, vh, devicePixelRatio);
     fit = coverFit(vw, vh, world.W, world.H, OVER);
-    if (!intro) scrollToT(keep, { immediate: true });
-  });
+    if (newUnit !== unit) {
+      unit = newUnit;
+      layout();
+      if (keep !== null) scrollToT(keep, { immediate: true });
+    }
+  }
 
   /* ---------------- intro ---------------- */
   function startIntro() {
@@ -142,7 +166,10 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
     const hash = location.hash.slice(1);
     const sc = W.SCENES.find((s) => s.id === hash);
     if (sc && sc.id !== 'top') {
-      scrollToT(sc.anchorT, { immediate: true });
+      // the browser jumps to the #fragment itself once the page has loaded; land on the anchor after that
+      const land = () => scrollToT(sc.anchorT, { immediate: true });
+      land();
+      if (document.readyState !== 'complete') addEventListener('load', () => requestAnimationFrame(land), { once: true, signal: listen.signal });
       t = sc.anchorT;
     } else if (seen || scrollY() > 4) t = scrollT();
     else {
@@ -226,6 +253,9 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
     get frame() {
       return player ? player.frame : -1;
     },
+    get mode() {
+      return player ? player.mode : null;
+    },
     ready: () => player.ready,
     start() {
       startIntro();
@@ -242,6 +272,8 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
       lenis?.start();
     },
     destroy() {
+      listen.abort();
+      ro.disconnect();
       cancelAnimationFrame(raf);
       lenis?.destroy();
       player?.destroy();
