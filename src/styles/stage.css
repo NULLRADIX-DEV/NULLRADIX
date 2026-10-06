@@ -409,3 +409,160 @@ body[data-mode='film'].has-cursor .panel button {
     display: none;
   }
 }
+
+/* ============ entrance ============ */
+html.is-gated {
+  overflow: hidden;
+}
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  text-align: center;
+}
+.gate[hidden] {
+  display: none;
+}
+/* the crosshair sits on the exact centre, where the film's origin appears */
+.gate__origin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transition: opacity 0.9s var(--ease);
+}
+.gate__cross {
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--c-near), var(--c-near)) center / 100% 1.5px no-repeat,
+    linear-gradient(var(--c-near), var(--c-near)) center / 1.5px 100% no-repeat;
+  animation: gate-breathe 2.4s var(--ease-inout) infinite;
+}
+.gate__cross::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid var(--c-near);
+  border-radius: 50%;
+}
+@keyframes gate-breathe {
+  50% { transform: scale(1.18); opacity: 0.7; }
+}
+.gate__coord {
+  position: absolute;
+  left: 16px;
+  top: 10px;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.12em;
+  color: var(--c-mid);
+  white-space: nowrap;
+}
+.gate__brand,
+.gate__enter,
+.gate__mute,
+.gate__load {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  transition: opacity 0.6s var(--ease), transform 0.9s var(--ease);
+}
+.gate__brand {
+  top: calc(50% + 56px);
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: clamp(1rem, 0.8rem + 0.8vw, 1.35rem);
+  letter-spacing: 0.6em;
+  margin-right: -0.6em;
+  color: var(--c-near);
+}
+.gate__enter {
+  top: calc(50% + 112px);
+  position: absolute;
+  overflow: hidden;
+  min-width: 13rem;
+  padding: 1rem 2.6rem;
+  border: 1px solid color-mix(in oklab, var(--c-near) 45%, transparent);
+  border-radius: 40px;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-200);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--c-near);
+  background: rgba(12, 12, 13, 0.6);
+  transition: opacity 0.6s var(--ease), transform 0.9s var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.gate__fill {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--c-near) 12%, transparent);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.gate__label {
+  position: relative;
+  margin-right: -0.4em;
+}
+.gate__enter:hover,
+.gate__enter:focus-visible {
+  color: var(--c-void);
+  border-color: var(--c-near);
+}
+.gate__enter:hover .gate__fill,
+.gate__enter:focus-visible .gate__fill {
+  transform: none !important;
+  background: var(--c-near);
+}
+.gate__mute {
+  top: calc(50% + 186px);
+  padding: 6px 10px;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-mid);
+}
+.gate__mute:hover,
+.gate__mute:focus-visible {
+  color: var(--c-near);
+}
+.gate__load {
+  bottom: clamp(70px, 10vh, 120px);
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-far);
+  font-variant-numeric: tabular-nums;
+}
+.gate.is-leaving {
+  pointer-events: none;
+}
+.gate.is-leaving .gate__origin {
+  opacity: 0;
+}
+.gate.is-leaving :is(.gate__brand, .gate__enter, .gate__mute, .gate__load) {
+  opacity: 0;
+  transform: translateY(24px);
+}
+body[data-mode='film'].has-cursor .gate,
+body[data-mode='film'].has-cursor .gate * {
+  cursor: auto;
+}
+body[data-mode='film'].has-cursor .gate button {
+  cursor: pointer;
+}
+html.is-gated .cursor {
+  display: none !important;
+}

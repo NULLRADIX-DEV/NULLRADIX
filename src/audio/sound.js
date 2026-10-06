@@ -14,7 +14,7 @@ const BEATS = [];
 for (let b = 6.5; b < 16.7; b += 0.5) BEATS.push(+b.toFixed(2));
 const TONE = { top: 420, about: 950, work: 620, skills: 760, contact: 340 };
 
-export function createSound() {
+export function createSound({ arm = true } = {}) {
   const btn = qs('[data-sound]');
   const label = qs('[data-sound-label]');
   const KEY = 'nr-sound';
@@ -210,7 +210,10 @@ export function createSound() {
     armedAt = performance.now();
     apply();
   };
-  for (const type of ['pointerdown', 'keydown', 'touchend']) addEventListener(type, gesture, { capture: true, passive: true });
+  const listen = () => {
+    for (const type of ['pointerdown', 'keydown', 'touchend']) addEventListener(type, gesture, { capture: true, passive: true });
+  };
+  if (arm) listen();
   document.addEventListener('visibilitychange', () => {
     if (!ac || !want) return;
     if (document.hidden) ac.suspend();
@@ -219,6 +222,13 @@ export function createSound() {
   render();
 
   return {
+    /** called inside the entrance click: that gesture is what lets the audio start */
+    enter(withSound) {
+      want = withSound;
+      armedAt = performance.now();
+      apply();
+      listen();
+    },
     update(ctx) {
       const t = ctx.t;
       if (!running) {

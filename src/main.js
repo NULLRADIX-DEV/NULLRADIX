@@ -11,6 +11,7 @@ import { renderContent, wireCopy, tour } from './scenes/content.js';
 import { createStage } from './stage/stage.js';
 import { createHud } from './stage/hud.js';
 import { createFx } from './stage/fx.js';
+import { createGate } from './stage/gate.js';
 import { createHero } from './scenes/hero.js';
 import { createAbout } from './scenes/about.js';
 import { createWork } from './scenes/work.js';
@@ -33,8 +34,15 @@ function boot() {
 
 function startFilm(anchors) {
   document.body.dataset.mode = 'film';
-  const sound = createSound();
+  const sound = createSound({ arm: false });
+  const gate = createGate({
+    onEnter: (withSound) => {
+      sound.enter(withSound);
+      stage?.resume();
+    },
+  });
   stage = createStage({
+    hold: gate.done,
     onStatus: (s) => (document.body.dataset.filmState = s),
     onFail: () => {
       stage?.destroy();
@@ -42,6 +50,7 @@ function startFilm(anchors) {
       startStatic(true);
     },
   });
+  stage.add(gate.update);
   stage.add(createHud());
   stage.add(createFx());
   stage.add(createHero());
@@ -55,11 +64,14 @@ function startFilm(anchors) {
     location.reload();
   });
   stage.start();
+  stage.pause(); // no scrolling past the entrance
   if (import.meta.env.DEV) window.__nrStage = stage;
 }
 
 function startStatic(fallback) {
   document.body.dataset.mode = 'static';
+  qs('[data-gate]').hidden = true;
+  document.documentElement.classList.remove('is-gated');
   // the film is gone: drop every inline style the choreography left behind
   for (const n of qsa('main [style], [data-anchors] [style], [data-leaders] *')) {
     if (n.closest('[data-panel]')) continue;

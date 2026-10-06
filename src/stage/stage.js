@@ -14,7 +14,7 @@ import { makeScrollMap } from './scrollmap.js';
 const INTRO_KEY = 'nr-intro-seen';
 const OVER = 1.04; // cover overscan, room for parallax
 
-export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
+export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Promise.resolve() } = {}) {
   const canvas = document.querySelector('[data-film]');
   const sections = [...document.querySelectorAll('[data-scene]')];
   const map = makeScrollMap(W.SCROLL_KEYS);
@@ -84,7 +84,8 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
     if (intro) intro = null;
     if (lenis) {
       const dist = Math.abs(target - t);
-      lenis.scrollTo(y, { immediate, duration: Math.min(3.2, 0.9 + dist * 0.06), easing: (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2) });
+      // immediate jumps also land while scrolling is held (entrance, open dialog)
+      lenis.scrollTo(y, { immediate, force: immediate, duration: Math.min(3.2, 0.9 + dist * 0.06), easing: (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2) });
     } else window.scrollTo({ top: y, behavior: immediate ? 'instant' : 'smooth' });
   }
 
@@ -176,7 +177,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {} } = {}) {
       // the clock starts once the first segment is decoded; until then hold the black first frame
       intro = { start: null, y0: scrollY() };
       t = 0;
-      player.ready.then(() => intro && (intro.start = performance.now()), () => {});
+      Promise.all([player.ready, hold]).then(() => intro && (intro.start = performance.now()), () => {});
     }
   }
 

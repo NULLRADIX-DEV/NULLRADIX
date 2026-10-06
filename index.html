@@ -42,6 +42,14 @@
       <span class="cursor__label" data-cursor-label></span>
     </div>
 
+    <div class="gate" data-gate hidden role="dialog" aria-modal="true" aria-labelledby="gate-title">
+      <div class="gate__origin" aria-hidden="true"><span class="gate__cross"></span><span class="gate__coord">(0,0)</span></div>
+      <p class="gate__brand" id="gate-title">NULLRADIX</p>
+      <button class="gate__enter" type="button" data-gate-enter><span class="gate__fill" aria-hidden="true"></span><span class="gate__label">Enter</span></button>
+      <button class="gate__mute" type="button" data-gate-mute>Enter without sound</button>
+      <p class="gate__load" data-gate-load aria-live="polite">Loading 0%</p>
+    </div>
+
     <header class="hud hud--top" data-hud>
       <a class="hud__brand" href="#top" aria-label="NULLRADIX - home">NULLRADIX</a>
       <nav class="hud__nav" aria-label="Primary">
