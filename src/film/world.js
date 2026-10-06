@@ -342,8 +342,8 @@ export function makeWorld(fmt = 'l') {
 
   /* plot: near top-down over the whole plane */
   function plotShot(u) {
-    const tgt = add3(W0, [0, 0, -150]);
-    return shot(orbit(tgt, -0.05 + 0.18 * u, 1.05, 4400 * pk(1.5)), tgt, F0);
+    const tgt = add3(W0, [0, 0, 250]);
+    return shot(orbit(tgt, -0.05 + 0.18 * u, 1.05, 5000 * pk(1.25)), tgt, F0);
   }
 
   /* skills: four glass panels rise from the plane */
