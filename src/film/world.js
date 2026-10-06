@@ -190,7 +190,7 @@ export const labelAt = (t) => {
 // impacts - drive post-FX in the film and RGB split + sound on the site
 export const CUES = [
   { t: 0.7, kind: 'shock', amp: 0.7 },
-  { t: 5.9, kind: 'shock', amp: 0.45 },
+  { t: 5.9, kind: 'pass', amp: 0.6 },
   ...SLAMS.map((t) => ({ t, kind: 'slam', amp: 0.8 })),
   { t: 16.8, kind: 'burst', amp: 1 },
   ...NODES.map((_, i) => ({ t: 17.5 + i * 0.18, kind: 'ping', amp: 0.3 })),
@@ -198,6 +198,34 @@ export const CUES = [
   { t: T_DOLLY, kind: 'rise', amp: 0.6 },
   { t: T_DROP, kind: 'drop', amp: 1 },
 ].sort((a, b) => a.t - b.t);
+
+// how hard each cue kind hits: flash, chromatic aberration (px), shake (px), bloom+, zoom blur, decay (s)
+const KIND = {
+  shock: { fl: 0.35, ca: 9, sh: 10, bl: 0.6, zm: 0.05, dc: 0.35 },
+  slam: { fl: 0.12, ca: 8, sh: 14, bl: 0.3, zm: 0.03, dc: 0.16 },
+  burst: { fl: 0.9, ca: 16, sh: 22, bl: 1.2, zm: 0.12, dc: 0.5 },
+  pass: { fl: 0, ca: 7, sh: 6, bl: 0.3, zm: 0.06, dc: 0.3 },
+  ping: { fl: 0, ca: 1.5, sh: 0, bl: 0.25, zm: 0, dc: 0.3 },
+  rise: { fl: 0, ca: 0, sh: 0, bl: 0, zm: 0, dc: 0.1 },
+  drop: { fl: 0.95, ca: 18, sh: 26, bl: 1.3, zm: 0.13, dc: 0.7 },
+};
+/** impact state at film time t (shared by film post-FX and the site's live layer); sx/sy in film px */
+export function impactAt(t) {
+  let flash = 0, ca = 0, shake = 0, bloom = 0, zoom = 0;
+  for (const c of CUES) {
+    const u = t - c.t, K = KIND[c.kind];
+    if (u < 0 || u > K.dc * 6) continue;
+    const e = Math.exp(-u / K.dc) * c.amp;
+    flash = Math.max(flash, K.fl * c.amp * Math.exp(-u / (K.dc * 0.15)));
+    ca += K.ca * e;
+    shake += K.sh * c.amp * Math.exp(-u / (K.dc * 0.6));
+    bloom += K.bl * e;
+    zoom += K.zm * c.amp * Math.exp(-u / (K.dc * 0.5));
+  }
+  const sx = shake * (Math.sin(t * 97.3) * 0.6 + Math.sin(t * 151.1 + 1) * 0.4);
+  const sy = shake * (Math.sin(t * 83.7 + 2) * 0.6 + Math.sin(t * 131.9) * 0.4);
+  return { flash, ca, shake, bloom, zoom, sx, sy };
+}
 
 // scroll keyframes: [film time, cumulative viewport heights]. Scroll 0 = end of the intro (t = 3).
 export const SCROLL_KEYS = (() => {
@@ -231,7 +259,7 @@ export function makeWorld(fmt = 'l') {
   const pk = (k) => (tall ? k : 1);
   const pullEye = (tgt, eye, k) => add3(tgt, mul3(sub3(eye, tgt), k));
 
-  const HERO_TGT = [0, -430, 0];
+  const HERO_TGT = [0, -340, 0];
   const heroShift = tall ? [0, -0.17 * H] : [0.2 * W, 0];
   const stopShift = tall ? [0, -0.2 * H] : [-0.17 * W, 0.02 * H];
   const trackShift = tall ? [0, 0.16 * H] : [0, 0.16 * H];
@@ -241,7 +269,7 @@ export function makeWorld(fmt = 'l') {
   function heroShot(t) {
     const u = P(t, 3.0, 4.6);
     const tgt = HERO_TGT;
-    const eye = pullEye(tgt, orbit(tgt, lerp(-0.24, -0.36, u), lerp(-0.1, -0.06, u), lerp(1260, 1170, u)), pk(1.35));
+    const eye = pullEye(tgt, orbit(tgt, lerp(-0.3, -0.42, u), lerp(0.25, 0.21, u), lerp(1320, 1220, u)), pk(1.35));
     return shot(eye, tgt, F0, 0, heroShift[0], heroShift[1]);
   }
   function introShot(t) {

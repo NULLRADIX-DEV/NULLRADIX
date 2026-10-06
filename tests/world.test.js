@@ -67,3 +67,12 @@ test('cues are sorted and inside the film', () => {
     if (i) assert.ok(W.CUES[i].t >= W.CUES[i - 1].t);
   }
 });
+
+test('impactAt is quiet between cues and peaks right after a drop', () => {
+  const calm = W.impactAt(25.5);
+  assert.equal(calm.flash, 0);
+  const hit = W.impactAt(46.62);
+  assert.ok(hit.flash > 0.5 && hit.ca > 5 && Math.hypot(hit.sx, hit.sy) > 0);
+  const before = W.impactAt(46.55);
+  assert.ok(before.flash < 0.05);
+});
