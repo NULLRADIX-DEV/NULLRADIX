@@ -12,7 +12,7 @@ import { coverFit } from '../stage/cover.js';
 
 const US = 1e6;
 
-export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 }) {
+export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, software = false }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   let man = null, segs = [];
   let fit = null, dpr = 1;
@@ -88,7 +88,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
 
   /* ---------------- WebCodecs ---------------- */
   let decoder = null, decoderKey = '', job = null, decodeErrors = 0;
-  let decoding = false, retryAt = 0;
+  let decoding = false, retryAt = 0, lookahead = 1, decodeFps = 0;
 
   function ensureDecoder(mp4) {
     const key = mp4.codec + ':' + mp4.description.join(',');
@@ -98,6 +98,13 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
         output: (frame) => {
           if (destroyed) return frame.close();
           const idx = Math.round((frame.timestamp * man.fps) / US);
+          if (software) {
+            // CPU-decoded frames are kept as they are: no GPU copy competing with the compositor
+            const arr = cache.get(Math.floor(idx / man.gop));
+            if (arr) arr[idx % man.gop] = frame;
+            else frame.close();
+            return;
+          }
           const j = job;
           const p = createImageBitmap(frame).then(
             (bmp) => {
@@ -113,7 +120,12 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
         error: (e) => console.warn('film decoder', e),
       });
     }
-    decoder.configure({ codec: mp4.codec, description: mp4.description, optimizeForLatency: true });
+    decoder.configure({
+      codec: mp4.codec,
+      description: mp4.description,
+      optimizeForLatency: true,
+      hardwareAcceleration: software ? 'prefer-software' : 'no-preference',
+    });
     decoderKey = key;
   }
 
@@ -140,9 +152,13 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
         }),
       );
     }
+    const t0 = performance.now();
     await decoder.flush();
     await Promise.all(pending);
     job = null;
+    // decode throughput (frames per second of decode work), smoothed - the stage paces flights with it
+    const fps = man.gop / Math.max(0.001, (performance.now() - t0) / 1000);
+    decodeFps = decodeFps ? decodeFps * 0.7 + fps * 0.3 : fps;
     if (destroyed) {
       for (const b of arr) b?.close();
       return;
@@ -153,7 +169,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
   function trimCache() {
     const g = Math.floor(target / man.gop);
     const keys = [...cache.keys()].sort((a, b) => Math.abs(a - g) - Math.abs(b - g));
-    for (const k of keys.slice(gopCap)) {
+    for (const k of keys.slice(Math.max(gopCap, lookahead + 2))) {
       for (const b of cache.get(k)) b?.close();
       cache.delete(k);
     }
@@ -164,7 +180,13 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
     const g = Math.floor(target / man.gop);
     let want = null;
     if (!cache.has(g)) want = g;
-    else {
+    else if (lookahead > 1) {
+      // flying: keep several GOPs ready ahead of the playhead
+      for (let k = 1; k <= lookahead && want === null; k++) {
+        const n = g + k * dir;
+        if (n >= 0 && n * man.gop < man.frames && !cache.has(n)) want = n;
+      }
+    } else {
       const pos = target % man.gop, n = g + (dir > 0 ? 1 : -1);
       const near = dir > 0 ? pos >= man.gop - 8 : pos <= 7;
       if (near && n >= 0 && n * man.gop < man.frames && !cache.has(n)) want = n;
@@ -347,6 +369,16 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
     get status() { return status; },
     get progress() { return loadedBytes / totalBytes; },
     get frame() { return shownFrame; },
+    get decodeFps() { return decodeFps; },
+    /** is frame f decoded and ready to show? (the <video> fallback can show anything, slowly) */
+    has(f) {
+      if (!man || f < 0 || f >= man.frames) return false;
+      return mode === 'video' || !!bitmapAt(f);
+    },
+    setLookahead(n) {
+      lookahead = Math.max(1, n);
+      pump();
+    },
     resize(vw, vh, ratio) {
       dpr = Math.min(ratio || 1, 2);
       canvas.width = Math.round(vw * dpr);

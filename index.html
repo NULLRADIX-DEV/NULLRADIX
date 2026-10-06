@@ -30,6 +30,7 @@
     <!-- the film: one canvas behind everything, plus the instrument marks anchored into its camera -->
     <div class="stage" aria-hidden="true">
       <canvas class="film" data-film></canvas>
+      <canvas class="film film--proxy" data-film-proxy></canvas>
       <canvas class="swarm" data-swarm></canvas>
       <div class="shade" data-shade></div>
       <svg class="leaders" data-leaders></svg>
@@ -38,7 +39,6 @@
     <div class="ghost" aria-hidden="true">NR</div>
     <div class="grain" aria-hidden="true"></div>
     <div class="flash" data-flash aria-hidden="true"></div>
-    <div class="cut" data-cut aria-hidden="true"><span class="cut__cross"></span><span class="cut__label" data-cut-label></span></div>
     <div class="cursor" data-cursor aria-hidden="true">
       <span class="cursor__cross"></span>
       <span class="cursor__label" data-cursor-label></span>
