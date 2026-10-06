@@ -1,81 +1,32 @@
 # NULLRADIX
 
-A minimalist developer portfolio that behaves like a graphing instrument.
-Everything is plotted from the origin **(0,0)** - an interactive coordinate
-dot-field, a live `(x,y)` HUD, and projects placed on the plane.
+Das Portfolio von Tristan unter [nullradix.de](https://nullradix.de). Die Startseite ist ein vorgerenderter 3D-Film, den der Scroll abspielt: Wer scrollt, fliegt mit der Kamera von einem Partikel-Ursprung durch eine Röhre aus Code über eine Koordinatenebene mit den Projekten bis zum Kontakt. Alles, was man liest oder anklickt, ist echtes HTML und folgt derselben Kamera wie der Film.
 
-Direction: **ORIGIN // (0,0)**. Stack: vanilla HTML/CSS/JS + Vite. No framework.
+## Lokal starten
 
-## Edit your content
-
-All copy lives in **one file**: [`src/data/content.js`](src/data/content.js).
-Edit `profile`, `projects`, `skills`, `experience`, and `socials` - both the
-accessible list and the plotted view read from the same data.
-
-Each project's `coord: { x, y }` (each axis ~ -100..100) places it between the
-plane's four direction poles (see `axes` in the same file): `x` runs Frontend (-)
-↔ Backend (+), `y` runs Infrastructure (-) ↔ Product (+).
-
-## Develop
+Du brauchst Node 20.19 oder neuer (siehe `.nvmrc`).
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # -> dist/
-npm run preview  # serve the built site
+npx vite --host 127.0.0.1    # http://127.0.0.1:5173
+npm test                     # node --test
+npm run build                # nach dist/
 ```
 
-Requires Node 20.19+ / 22.12+ (see `.nvmrc`).
+Die Filmdateien unter `public/film/` sind nicht im Repo, weil sie rund 50 MB groß sind. Sie entstehen im Video-Kit (`NULLRADIX_Videos/nullradix-video-kit/work/site-film`) mit `python render_site.py`, das die Segmente direkt nach `public/film/` schreibt. Ohne sie zeigt die Seite die statische Fassung.
 
-## Design tokens
+Wenn dein System „Bewegung reduzieren“ eingeschaltet hat, bekommst du ebenfalls die statische Fassung. Mit `?motion=1` erzwingst du den Film, mit `?motion=0` die statische Seite.
 
-Palette and type live in [`src/styles/tokens.css`](src/styles/tokens.css). The
-canvas reads its colors from these CSS variables, so changing a token updates
-both the UI and the field. Single accent: `--c-origin` (#36F1CD).
+## Inhalte ändern
 
-## How it works
+Alle Texte stehen in [`src/data/content.js`](src/data/content.js), nur die Hero-Zeile steht in `index.html`. Film und Seite müssen dieselbe Welt beschreiben: Ein Projekt steht im Film an seiner Koordinate `coord`, und `npm test` schlägt fehl, wenn `content.js` und `src/film/world.js` dabei auseinanderlaufen. Neue Projekte, Skill-Gruppen oder Stationen im Werdegang brauchen deshalb einen neuen Film.
 
-- `src/field/` - the canvas instrument: a jittered lattice (`particles.js`)
-  driven by a spatial hash (`grid.js`) so cursor proximity is `O(neighbors)`.
-  `field.js` runs the loop; `hud.js` is the live readout; `crosshair.js` pins
-  the origin to the wordmark.
-- Three render modes (`modules/env.js`): **animated** (desktop), **low-motion**
-  (touch/small - calm static field, list-only nav), **static**
-  (`prefers-reduced-motion` / Save-Data - one frame, no loop).
-- The project **list** is the canonical, keyboard-accessible content; the
-  plotted nodes are pointer-only enhancement that cross-highlight the list.
+`src/film/world.js` ist eine Kopie. Das Original liegt im Video-Kit, `python make.py --sync` kopiert es hierher.
 
-## Accessibility
+## Wie die Seite aufgebaut ist
 
-WCAG-minded: skip link, semantic landmarks, visible focus, `prefers-reduced-motion`
-respected, the field is `aria-hidden`, and the list is fully usable without the
-scatter. Body text uses `--c-muted` (AA on the dark ground).
-
-## Smooth scroll
-
-Desktop uses [Lenis](https://github.com/darkroomengineering/lenis) (the only
-runtime dependency besides fonts), disabled on touch / reduced-motion. To drop
-the dependency entirely, remove `initScroll()` from `src/main.js` - native
-`scroll-behavior: smooth` is already set in CSS.
+Der Film liegt als H.264-Segmente mit einem Keyframe alle 15 Bilder vor. `src/film/player.js` dekodiert per WebCodecs immer eine ganze Bildgruppe und zeigt beim Scrollen das passende Bild, zwischen zwei Bildern blendet es weich über. Ohne WebCodecs springt ein `<video>`-Element ein. `src/stage/stage.js` rechnet die Scroll-Position in Filmzeit um und gibt jedem Frame die Kamera des sichtbaren Bildes an die Szenen in `src/scenes/` weiter, die damit Karten, Beschriftungen und die Glas-Panels an ihre 3D-Punkte setzen. Der Ton in `src/audio/sound.js` wird live erzeugt und ist standardmäßig aus.
 
 ## Deploy
 
-Hosted as a container on the VPS (no longer Netlify).
-
-- **Image** - `.github/workflows/image.yml` builds the `Dockerfile` (Node 22
-  builds `dist/`, `nginx:stable-alpine` serves it with `deploy/nginx.conf`).
-  Push to `main` pushes `ghcr.io/nullradix-dev/nullradix:<sha>` to GHCR; PRs
-  only build.
-- **Deploy** - after the image of a commit on `main` is built: Actions → Deploy →
-  Run workflow (empty = latest `main`, or a commit). Tick "rollback" to go back
-  to the previous release. The workflow is the shared platform template and
-  sends only `deploy/compose.yml`; the server checks and switches it and keeps
-  the previous release running if anything fails.
-- **Server** - the site runs read-only with a 64 MB limit in its own rootless
-  Docker on the shared VPS, behind the host nginx (TLS via certbot).
-  `www.nullradix.de` is proxied to the container; `nullradix.de` (apex)
-  redirects to `www` with a 301. Server details live in the private ops docs.
-
-`netlify.toml` is a leftover and unused.
-
-Add a real `public/og-image.png` (1200×630) for social cards.
+Die Seite läuft als Container. `.github/workflows/image.yml` baut das Image, `.github/workflows/deploy.yml` rollt einen Commit aus oder zurück. Details zum Server stehen im Betriebshandbuch.
