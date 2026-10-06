@@ -24,7 +24,8 @@ body[data-mode='static'] .scene {
   min-height: 100vh;
   padding: clamp(110px, 16vh, 180px) var(--gutter) clamp(80px, 12vh, 140px);
   background:
-    linear-gradient(rgba(12, 12, 13, 0.55), rgba(12, 12, 13, 0.92) 85%),
+    linear-gradient(90deg, rgba(12, 12, 13, 0.85), rgba(12, 12, 13, 0.25) 75%),
+    linear-gradient(transparent 55%, rgba(12, 12, 13, 0.95)),
     var(--still, none) center / cover no-repeat;
   border-bottom: var(--hairline);
 }
