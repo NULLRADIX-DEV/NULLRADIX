@@ -11,6 +11,10 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   min-height: 100vh;
   background: var(--c-void);

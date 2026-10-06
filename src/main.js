@@ -1,41 +1,88 @@
-import "./styles/index.css";
+import './styles/index.css';
 
 // self-hosted variable fonts
-import "@fontsource-variable/roboto-flex/full.css"; // wght + wdth + opsz axes
-import "@fontsource-variable/inter";
-import "@fontsource-variable/space-grotesk";
+import '@fontsource-variable/roboto-flex/full.css'; // wght + wdth + opsz axes
+import '@fontsource-variable/inter';
+import '@fontsource-variable/space-grotesk';
 
-import { renderSections } from "./modules/sections.js";
-import { renderProjects } from "./modules/projects.js";
-import { createPanel } from "./modules/panel.js";
-import { renderField } from "./field/field.js";
-import { initTypo } from "./modules/typo.js";
-import { initScrollFill } from "./modules/scrollfill.js";
-import { initScroll } from "./modules/scroll.js";
-import { initNav } from "./modules/nav.js";
+import { env, setMotionOverride } from './modules/env.js';
+import { createPanel } from './modules/panel.js';
+import { renderContent, wireCopy } from './scenes/content.js';
+import { createStage } from './stage/stage.js';
+import { createHud } from './stage/hud.js';
+import { createFx } from './stage/fx.js';
+import { createHero } from './scenes/hero.js';
+import { createAbout } from './scenes/about.js';
+import { createWork } from './scenes/work.js';
+import { createSkills } from './scenes/skills.js';
+import { createContact } from './scenes/contact.js';
+import { createSound } from './audio/sound.js';
+import { pickFormat } from './stage/cover.js';
+import { qs, qsa } from './utils/dom.js';
+
+let stage = null;
 
 function boot() {
-  // disable the context menu across the entire page
-  document.addEventListener("contextmenu", (e) => e.preventDefault());
-
-  renderSections();
-
-  const panel = createPanel();
-  const projectsApi = renderProjects(panel);
-
-  // the plotted view of the same projects - bi-directional highlight with the list
-  const fieldApi = renderField({ panel, projectsApi });
-  projectsApi.onHighlight = (i) => fieldApi.highlightNode(i);
-  projectsApi.onClear = () => fieldApi.clearNode();
-
-  initTypo();
-  initScrollFill();
-  initNav();
-  initScroll();
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  const panel = createPanel({ onOpen: () => stage?.pause(), onClose: () => stage?.resume() });
+  const anchors = renderContent(panel);
+  wireCopy();
+  if (env.mode === 'film') startFilm(anchors);
+  else startStatic(false);
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", boot);
-} else {
-  boot();
+function startFilm(anchors) {
+  document.body.dataset.mode = 'film';
+  const sound = createSound();
+  stage = createStage({
+    onStatus: (s) => (document.body.dataset.film = s),
+    onFail: () => {
+      stage?.destroy();
+      stage = null;
+      startStatic(true);
+    },
+  });
+  stage.add(createHud());
+  stage.add(createFx());
+  stage.add(createHero());
+  stage.add(createAbout());
+  stage.add(createWork(anchors));
+  stage.add(createSkills());
+  stage.add(createContact());
+  stage.add(sound.update);
+  motionToggle('Motion on', () => {
+    setMotionOverride('0');
+    location.reload();
+  });
+  stage.start();
+  if (import.meta.env.DEV) window.__nrStage = stage;
 }
+
+function startStatic(fallback) {
+  document.body.dataset.mode = 'static';
+  // the film is gone: drop every inline style the choreography left behind
+  for (const n of qsa('main [style], [data-anchors] [style], [data-leaders] *')) {
+    if (n.closest('[data-panel]')) continue;
+    if (n.namespaceURI === 'http://www.w3.org/2000/svg') n.remove();
+    else n.removeAttribute('style');
+  }
+  window.scrollTo(0, 0);
+  const fmt = pickFormat(innerWidth, innerHeight);
+  for (const s of qsa('[data-scene]')) s.style.setProperty('--still', `url(/film/${fmt}/stills/${s.dataset.scene}.webp)`);
+  qs('[data-sound]').hidden = true;
+  if (!fallback && env.filmSupported)
+    motionToggle('Play film', () => {
+      setMotionOverride('1');
+      location.reload();
+    });
+}
+
+function motionToggle(text, onClick) {
+  const b = qs('[data-motion]');
+  b.hidden = false;
+  b.textContent = text;
+  b.onclick = onClick;
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();

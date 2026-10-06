@@ -1,0 +1,120 @@
+/* ================= static mode: the same content as a calm, stacked page on film stills =================
+   Used for prefers-reduced-motion, Save-Data, no film support - and before JS runs. */
+body[data-mode='static'] .stage,
+body[data-mode='static'] .cursor,
+body[data-mode='static'] .hud__readout,
+body[data-mode='static'] .hud__lens,
+body[data-mode='static'] .hud__group--end,
+body[data-mode='static'] .scroll-cue,
+body[data-mode='static'] .plot {
+  display: none;
+}
+body[data-mode='static'] .ghost {
+  display: grid;
+}
+body[data-mode='static'] .hud--top {
+  position: absolute;
+}
+body[data-mode='static'] main {
+  position: relative;
+  z-index: 3;
+}
+body[data-mode='static'] .scene {
+  position: relative;
+  min-height: 100vh;
+  padding: clamp(110px, 16vh, 180px) var(--gutter) clamp(80px, 12vh, 140px);
+  background:
+    linear-gradient(rgba(12, 12, 13, 0.55), rgba(12, 12, 13, 0.92) 85%),
+    var(--still, none) center / cover no-repeat;
+  border-bottom: var(--hairline);
+}
+body[data-mode='static'] .scene__layer {
+  width: min(100%, var(--container));
+  margin-inline: auto;
+}
+body[data-mode='static'] .scene--hero {
+  display: grid;
+  align-items: center;
+}
+body[data-mode='static'] .about__lead {
+  max-width: 34ch;
+}
+body[data-mode='static'] .principles {
+  margin-top: var(--sp-16);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--sp-8);
+}
+body[data-mode='static'] .principle__k {
+  margin-top: var(--sp-3);
+  font-size: clamp(2.2rem, 1rem + 3vw, 3.6rem);
+}
+body[data-mode='static'] .principle__v {
+  margin-top: var(--sp-3);
+}
+body[data-mode='static'] .projects {
+  margin-top: var(--sp-12);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: var(--sp-6);
+}
+body[data-mode='static'] .skills {
+  margin-top: var(--sp-12);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--sp-6);
+}
+body[data-mode='static'] .glass {
+  padding: 28px;
+  border-radius: 18px;
+}
+body[data-mode='static'] .glass__k {
+  font-size: var(--fs-100);
+}
+body[data-mode='static'] .glass__n {
+  font-size: var(--fs-100);
+}
+body[data-mode='static'] .glass__items li {
+  font-size: clamp(1.4rem, 1rem + 1vw, 1.9rem);
+}
+body[data-mode='static'] .track {
+  margin-top: var(--sp-16);
+}
+body[data-mode='static'] .timeline {
+  margin-top: var(--sp-6);
+  border-left: var(--hairline);
+  display: grid;
+  gap: var(--sp-8);
+}
+body[data-mode='static'] .milestone {
+  position: relative;
+  padding-left: var(--sp-8);
+  max-width: 46rem;
+}
+body[data-mode='static'] .milestone::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 0.45em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c-near);
+}
+body[data-mode='static'] .scene--contact {
+  display: grid;
+  align-content: center;
+  text-align: center;
+}
+body[data-mode='static'] .contact {
+  display: grid;
+  justify-items: center;
+}
+body[data-mode='static'] .scene--contact .site-footer {
+  margin-top: var(--sp-24);
+}
+@media (max-width: 680px) {
+  body[data-mode='static'] .hud__nav {
+    display: none;
+  }
+}

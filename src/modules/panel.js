@@ -5,7 +5,7 @@ import { projects } from '../data/content.js';
 const STATUS_LABEL = { live: 'Live', wip: 'In Progress', archived: 'Archived' };
 
 /** Shared project detail dialog. */
-export function createPanel() {
+export function createPanel({ onOpen = () => {}, onClose = () => {} } = {}) {
   const root = qs('[data-panel]');
   const card = qs('[data-panel-card]', root);
   let lastFocus = null;
@@ -137,6 +137,7 @@ export function createPanel() {
 
     root.hidden = false;
     document.body.style.overflow = 'hidden';
+    onOpen();
     setOrigin(source); // grow-from-click only on the initial open, not on nav
     void root.offsetWidth; // commit the closed state, then transition into the open one
     root.classList.add('is-open');
@@ -149,6 +150,7 @@ export function createPanel() {
     clearTypers();
     root.classList.remove('is-open');
     document.body.style.overflow = '';
+    onClose();
     document.removeEventListener('keydown', onKey);
     lastFocus?.focus?.();
     closeTimer = setTimeout(() => {
