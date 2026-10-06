@@ -37,9 +37,9 @@ export function renderContent(panel) {
   // projects in tour order
   const total = pad(tour.length);
   qs('[data-projects]').replaceChildren(
-    ...tour.map(({ project: p, index }, i) => {
+    ...tour.map(({ project: p }, i) => {
       const open = el('button', { class: 'btn btn--primary', type: 'button' }, 'Open case');
-      open.addEventListener('click', () => panel.open(p, index + 1, open));
+      open.addEventListener('click', () => panel.open(p, i + 1, open));
       const links = Object.entries(p.links || {}).map(([k, href]) =>
         el('a', { class: 'btn', href, target: '_blank', rel: 'noopener' }, k === 'live' ? 'Live ↗' : k === 'repo' ? 'Repository ↗' : `${k} ↗`),
       );
@@ -63,13 +63,13 @@ export function renderContent(panel) {
   // the plot: an index of every node (accessible twin of the clickable labels on the plane)
   qs('[data-plot-count]').textContent = `${pad(tour.length)} projects`;
   qs('[data-plot-index]').replaceChildren(
-    ...tour.map(({ project: p, index }, i) => {
+    ...tour.map(({ project: p }, i) => {
       const b = el('button', { type: 'button', class: 'plot__item', 'data-focus-t': 33.2 }, [
         el('span', { class: 'plot__n' }, pad(i + 1)),
         el('span', { class: 'plot__name' }, p.name),
         el('span', { class: 'plot__coord' }, coordText(p.coord)),
       ]);
-      b.addEventListener('click', () => panel.open(p, index + 1, b));
+      b.addEventListener('click', () => panel.open(p, i + 1, b));
       return el('li', {}, b);
     }),
   );
@@ -117,9 +117,9 @@ export function renderContent(panel) {
       yneg: mk('anchor--axis', axes.y.neg),
       ypos: mk('anchor--axis', axes.y.pos),
     },
-    nodes: tour.map(({ project: p, index }, i) => {
+    nodes: tour.map(({ project: p }, i) => {
       const n = mk('anchor--node', [el('span', { class: 'anchor__n' }, pad(i + 1)), el('span', { class: 'anchor__name' }, p.name), el('span', { class: 'anchor__coord' }, coordText(p.coord))]);
-      n.addEventListener('click', () => panel.open(p, index + 1, n));
+      n.addEventListener('click', () => panel.open(p, i + 1, n));
       return n;
     }),
   };

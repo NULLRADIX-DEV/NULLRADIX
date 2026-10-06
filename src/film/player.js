@@ -17,7 +17,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
   let man = null, segs = [];
   let fit = null, dpr = 1;
   let target = 0, dir = 1;
-  let shownSrc = null, shownFrame = -1;
+  let shownSrc = null, shownFrame = -1, shownKey = '', frac = 0;
   let mode = 'webcodecs';
   let status = '';
   let loadedBytes = 0, totalBytes = 1;
@@ -226,12 +226,19 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
   }
 
   /* ---------------- drawing ---------------- */
-  function paint(src, f) {
+  // draw frame f, optionally cross-faded towards the next one (sub-frame scrolling stays fluid)
+  function paint(src, f, next = null, a = 0) {
     if (!fit) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalAlpha = 1;
     ctx.drawImage(src, fit.ox, fit.oy, man.width * fit.k, man.height * fit.k);
+    if (next && a > 0) {
+      ctx.globalAlpha = a;
+      ctx.drawImage(next, fit.ox, fit.oy, man.width * fit.k, man.height * fit.k);
+      ctx.globalAlpha = 1;
+    }
     shownSrc = src;
-    shownFrame = f;
+    shownFrame = next && a > 0 ? f + a : f;
   }
 
   function bitmapAt(f) {
@@ -249,8 +256,15 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
         if (src) f = bitmapAt(target - d * dir) ? target - d * dir : target + d * dir;
       }
     }
-    if (src && src !== shownSrc) paint(src, f);
-    setStatus(f === target && src ? 'ready' : 'buffering');
+    if (!src) return setStatus('buffering');
+    const next = f === target && target + 1 < man.frames ? bitmapAt(target + 1) : null;
+    const a = next ? Math.round(frac * 16) / 16 : 0;
+    const key = `${f}:${a}`;
+    if (key !== shownKey || src !== shownSrc) {
+      shownKey = key;
+      paint(src, f, next, a);
+    }
+    setStatus(f === target ? 'ready' : 'buffering');
   }
 
   /* ---------------- api ---------------- */
@@ -288,18 +302,17 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04 })
       canvas.width = Math.round(vw * dpr);
       canvas.height = Math.round(vh * dpr);
       if (man) fit = coverFit(vw, vh, man.width, man.height, over);
-      const src = shownSrc;
-      shownSrc = null;
-      if (src && mode === 'webcodecs') paint(src, shownFrame);
-      else if (mode === 'video') pumpVideo();
+      shownKey = '';
+      if (mode === 'video') pumpVideo();
       draw();
     },
     setFrame(f) {
       if (!man) return;
-      f = Math.max(0, Math.min(man.frames - 1, Math.round(f)));
-      if (f === target && shownFrame === f) return;
-      if (f !== target) dir = f > target ? 1 : -1;
-      target = f;
+      f = Math.max(0, Math.min(man.frames - 1, f));
+      const base = Math.floor(f);
+      frac = f - base;
+      if (base !== target) dir = base > target ? 1 : -1;
+      target = base;
       if (mode === 'video') pumpVideo();
       else {
         draw();
