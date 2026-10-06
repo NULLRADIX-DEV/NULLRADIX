@@ -25,9 +25,13 @@ export function createGate({ onEnter }) {
     onEnter(withSound); // synchronous: the click is what lets the audio start
     el.classList.add('is-leaving');
     root.classList.remove('is-gated');
+    getSelection()?.removeAllRanges();
+    // keep catching clicks a moment longer: a double-click on Enter must not land on the page
+    setTimeout(() => el.classList.add('is-gone'), 500);
     setTimeout(() => (el.hidden = true), 1100);
     resolve(withSound);
   }
+  el.addEventListener('mousedown', (e) => e.target === el && e.preventDefault()); // no selection drags from the backdrop
   enter.addEventListener('click', () => go(true));
   mute.addEventListener('click', () => go(false));
 

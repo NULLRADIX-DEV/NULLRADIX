@@ -546,7 +546,7 @@ html.is-gated {
   color: var(--c-far);
   font-variant-numeric: tabular-nums;
 }
-.gate.is-leaving {
+.gate.is-gone {
   pointer-events: none;
 }
 .gate.is-leaving .gate__origin {

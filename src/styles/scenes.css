@@ -375,6 +375,11 @@ body[data-mode='film'] .timeline > li {
 body[data-mode='film'] .scene__layer {
   text-shadow: 0 0 30px rgba(12, 12, 13, 0.75);
 }
+/* animated display type is built from single-glyph spans: a stray click would mark one glyph */
+body[data-mode='film'] :is(.hero__title, .principle__k) {
+  user-select: none;
+  -webkit-user-select: none;
+}
 
 /* hero */
 body[data-mode='film'] .hero {
