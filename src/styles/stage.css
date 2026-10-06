@@ -328,6 +328,7 @@ body[data-mode='film'].has-cursor .panel button {
   text-transform: inherit;
   color: var(--c-mid);
   padding: 6px 0;
+  white-space: nowrap;
   transition: color var(--dur-fast) var(--ease);
 }
 .hud__btn:hover,
@@ -389,6 +390,10 @@ body[data-mode='film'].has-cursor .panel button {
   background: var(--c-near);
 }
 @media (max-width: 760px) {
+  .hud,
+  .hud__group {
+    gap: var(--sp-4);
+  }
   .hud__nav {
     display: none;
   }
