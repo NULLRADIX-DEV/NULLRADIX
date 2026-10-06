@@ -538,6 +538,11 @@ body[data-mode='film'] .contact {
 body[data-mode='film'] .contact > * {
   opacity: 0;
 }
+@media (min-aspect-ratio: 17/20) {
+  body[data-mode='film'] .contact__slogan {
+    white-space: nowrap;
+  }
+}
 body[data-mode='film'] .scene--contact .site-footer {
   position: absolute;
   left: 16px;
@@ -545,6 +550,37 @@ body[data-mode='film'] .scene--contact .site-footer {
   top: var(--top, 85vh);
   justify-content: center;
   column-gap: var(--sp-8);
+}
+/* wide screens: the footer sits in the middle of the bottom HUD bar */
+@media (min-width: 1400px) and (min-aspect-ratio: 17/20) {
+  body[data-mode='film'] .scene--contact .site-footer {
+    position: fixed;
+    top: auto;
+    left: 50%;
+    right: auto;
+    bottom: clamp(20px, calc(2.2vw + 6px), 40px);
+    translate: -50% 0;
+    z-index: 51;
+    white-space: nowrap;
+  }
+  body[data-mode='film'] .scene--contact .site-footer > span:first-child {
+    display: none;
+  }
+}
+body[data-mode='film'] .contact__slogan {
+  margin-top: var(--sp-3);
+}
+body[data-mode='film'] .contact__signal {
+  margin-top: var(--sp-6);
+  gap: var(--sp-5, 1.25rem);
+}
+.contact__actions .btn {
+  font-size: var(--fs-200);
+  padding: 0.85rem 1.8rem;
+}
+.contact .socials {
+  font-size: var(--fs-200);
+  letter-spacing: 0.06em;
 }
 
 /* portrait film: copy moves under the subject */

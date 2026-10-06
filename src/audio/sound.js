@@ -4,7 +4,8 @@
  *  - air (filtered noise) that rises when the film moves fast
  *  - a kick on the bore's beat grid - scroll faster, the beat runs faster
  *  - impacts, pings, a riser and the drop whenever the playhead crosses a cue (either way)
- * Off by default; the HUD button starts it (browsers need a gesture for audio anyway).
+ * On by default. Browsers only let audio start after a real gesture (click, key, tap - not the
+ * wheel), so it is armed and starts with the first one. Switching it off is remembered.
  */
 import { CUES, sceneAt } from '../film/world.js';
 import { qs } from '../utils/dom.js';
@@ -16,7 +17,14 @@ const TONE = { top: 420, about: 950, work: 620, skills: 760, contact: 340 };
 export function createSound() {
   const btn = qs('[data-sound]');
   const label = qs('[data-sound-label]');
-  let ac = null, on = false, lastT = null;
+  const KEY = 'nr-sound';
+  let want = true;
+  try {
+    want = localStorage.getItem(KEY) !== '0';
+  } catch {
+    /* storage blocked: default on */
+  }
+  let ac = null, running = false, lastT = null;
   let master, drone, droneFilter, air, airFilter, wet, noise;
 
   function impulse(seconds, decay) {
@@ -162,27 +170,58 @@ export function createSound() {
   };
 
   /* ---------------- control ---------------- */
-  function setOn(v) {
-    on = v;
-    if (on && !ac) build();
-    if (ac) {
-      if (on) ac.resume();
-      master.gain.setTargetAtTime(on ? 0.9 : 0, ac.currentTime, 0.25);
-    }
-    btn.setAttribute('aria-pressed', String(on));
-    label.textContent = on ? 'Sound on' : 'Sound off';
+  let fadeOut = 0, armedAt = -1e9;
+  function render() {
+    btn.setAttribute('aria-pressed', String(want));
+    btn.toggleAttribute('data-running', running);
+    label.textContent = want ? 'Sound on' : 'Sound off';
   }
-  btn.addEventListener('click', () => setOn(!on));
-  document.addEventListener('visibilitychange', () => {
-    if (!ac) return;
-    if (document.hidden) ac.suspend();
-    else if (on) ac.resume();
+  // start (needs a user gesture) or stop; stopping fades out, then lets the device sleep
+  function apply() {
+    clearTimeout(fadeOut);
+    if (want) {
+      if (!ac) build();
+      ac.resume().then(() => {
+        running = ac.state === 'running';
+        render();
+      });
+      master.gain.setTargetAtTime(0.9, ac.currentTime, 0.3);
+    } else if (ac) {
+      master.gain.setTargetAtTime(0, ac.currentTime, 0.2);
+      fadeOut = setTimeout(() => ac.suspend(), 900);
+      running = false;
+    }
+    render();
+  }
+  btn.addEventListener('click', (e) => {
+    // the first gesture may be this click: it starts the armed sound instead of switching it off
+    if ((want && !running) || performance.now() - armedAt < 600) return want && apply();
+    want = !want;
+    try {
+      localStorage.setItem(KEY, want ? '1' : '0');
+    } catch {
+      /* not remembered */
+    }
+    apply();
+    e.stopPropagation();
   });
+  const gesture = () => {
+    if (!want || running) return;
+    armedAt = performance.now();
+    apply();
+  };
+  for (const type of ['pointerdown', 'keydown', 'touchend']) addEventListener(type, gesture, { capture: true, passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (!ac || !want) return;
+    if (document.hidden) ac.suspend();
+    else ac.resume();
+  });
+  render();
 
   return {
     update(ctx) {
       const t = ctx.t;
-      if (!on || !ac) {
+      if (!running) {
         lastT = t;
         return;
       }

@@ -348,12 +348,12 @@ body[data-mode='film'].has-cursor .panel button {
   background: currentColor;
   transition: height var(--dur-fast) var(--ease);
 }
-.hud__btn[aria-pressed='true'] .hud__eq i {
+.hud__btn[data-running] .hud__eq i {
   animation: eq 0.9s var(--ease-inout) infinite alternate;
 }
-.hud__btn[aria-pressed='true'] .hud__eq i:nth-child(2) { animation-delay: -0.3s; }
-.hud__btn[aria-pressed='true'] .hud__eq i:nth-child(3) { animation-delay: -0.6s; }
-.hud__btn[aria-pressed='true'] .hud__eq i:nth-child(4) { animation-delay: -0.45s; }
+.hud__btn[data-running] .hud__eq i:nth-child(2) { animation-delay: -0.3s; }
+.hud__btn[data-running] .hud__eq i:nth-child(3) { animation-delay: -0.6s; }
+.hud__btn[data-running] .hud__eq i:nth-child(4) { animation-delay: -0.45s; }
 @keyframes eq {
   from { height: 2px; }
   to { height: 10px; }
