@@ -529,6 +529,7 @@ body[data-mode='film'] .contact {
   left: 0;
   right: 0;
   top: var(--top, 55vh);
+  transform-origin: 50% 0;
   display: grid;
   justify-items: center;
   text-align: center;
@@ -539,9 +540,11 @@ body[data-mode='film'] .contact > * {
 }
 body[data-mode='film'] .scene--contact .site-footer {
   position: absolute;
-  left: clamp(16px, 3vw, 48px);
-  right: clamp(16px, 3vw, 48px);
-  bottom: clamp(56px, 7vh, 84px);
+  left: 16px;
+  right: 16px;
+  top: var(--top, 85vh);
+  justify-content: center;
+  column-gap: var(--sp-8);
 }
 
 /* portrait film: copy moves under the subject */
