@@ -573,3 +573,46 @@ body[data-mode='film'].has-cursor .gate button {
 html.is-gated .cursor {
   display: none !important;
 }
+
+/* ============ cut: long jumps between scenes ============ */
+.cut {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  background: var(--c-void);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.55s var(--ease-inout), visibility 0s linear 0.55s;
+}
+.cut.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s var(--ease-inout), visibility 0s;
+}
+.cut__cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  background:
+    linear-gradient(var(--c-near), var(--c-near)) center / 100% 1.5px no-repeat,
+    linear-gradient(var(--c-near), var(--c-near)) center / 1.5px 100% no-repeat;
+}
+.cut__label {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 28px);
+  translate: -50% 0;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--c-mid);
+  white-space: nowrap;
+}

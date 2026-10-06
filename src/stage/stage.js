@@ -89,6 +89,33 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     } else window.scrollTo({ top: y, behavior: immediate ? 'instant' : 'smooth' });
   }
 
+  // a short hop is flown at a pace the decoder keeps up with; a long one is a cut through black
+  const cut = document.querySelector('[data-cut]');
+  const cutLabel = document.querySelector('[data-cut-label]');
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  let cutting = false;
+  async function travel(target, label) {
+    if (cutting) return;
+    const dist = Math.abs(target - t);
+    if (dist <= 4 || !player) {
+      if (intro) intro = null;
+      if (lenis) lenis.scrollTo(map.toV(target) * unit, { duration: Math.min(2.4, 0.9 + dist * 0.38), easing: (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2) });
+      else window.scrollTo({ top: map.toV(target) * unit, behavior: 'smooth' });
+      return;
+    }
+    cutting = true;
+    cutLabel.textContent = label;
+    cut.classList.add('is-on');
+    await wait(320);
+    scrollToT(target, { immediate: true });
+    t = target;
+    const start = performance.now();
+    while (performance.now() - start < 3000 && Math.abs(player.frame - target * W.FPS) > 1.01) await wait(30);
+    cut.classList.remove('is-on');
+    await wait(560);
+    cutting = false;
+  }
+
   // in-page links fly the camera to the scene's anchor
   document.addEventListener('click', (e) => {
     const a = e.target.closest('a[href^="#"]');
@@ -97,7 +124,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     const sc = W.SCENES.find((s) => s.id === id);
     if (!sc && id !== 'main') return;
     e.preventDefault();
-    scrollToT(sc ? sc.anchorT : T0);
+    travel(sc ? sc.anchorT : T0, sc ? sc.label : W.SCENES[0].label);
     history.replaceState(null, '', `#${id}`);
     // move keyboard focus with the camera, so Tab continues inside that scene
     const heading = document.querySelector(`#${sc ? sc.id : 'top'} :is(h1, h2)`);
@@ -227,7 +254,9 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     film.y = -pointer.ny * 8;
     canvas.style.transform = `translate3d(${film.x.toFixed(2)}px,${film.y.toFixed(2)}px,0)`;
 
-    ctx.t = t;
+    // everything on the page follows the frame that is actually on screen, never the target ahead of it
+    ctx.t = shown;
+    ctx.targetT = t;
     ctx.shownT = shown;
     ctx.cam = world.cam(shown);
     ctx.world = world;
@@ -236,7 +265,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     ctx.vh = vh;
     ctx.fmt = fmt;
     ctx.impact = W.impactAt(shown);
-    ctx.progress = (t - T0) / (W.DUR - T0);
+    ctx.progress = (shown - T0) / (W.DUR - T0);
     ctx.buffer = player ? player.progress : 0;
     ctx.intro = !!intro;
     ctx.film = film;
@@ -250,6 +279,9 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
   return {
     get t() {
       return t;
+    },
+    get sceneT() {
+      return ctx.t;
     },
     get frame() {
       return player ? player.frame : -1;
