@@ -1,3 +1,4 @@
+import { sfx } from '../utils/sfx.js';
 import { qs, qsa, el } from '../utils/dom.js';
 import { projects } from '../data/content.js';
 
@@ -40,11 +41,16 @@ export function createPanel({ onOpen = () => {}, onClose = () => {}, list = proj
 
     let start = 0;
     let rafId = 0;
+    let typed = 0;
     const timer = setTimeout(() => {
       const step = (now) => {
         start ||= now;
         const p = Math.min((now - start) / duration, 1);
         const shown = Math.round(p * spans.length);
+        if (shown > typed) {
+          typed = shown;
+          sfx('type'); // the engine keeps typing clicks at most one per ~22 ms
+        }
         for (let i = 0; i < shown; i++) spans[i].style.opacity = '1';
         if (p < 1) rafId = requestAnimationFrame(step);
       };

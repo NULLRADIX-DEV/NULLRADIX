@@ -23,6 +23,7 @@ import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
 import { qs, qsa } from './utils/dom.js';
+import { bindSfx } from './utils/sfx.js';
 
 let stage = null;
 
@@ -56,6 +57,7 @@ function startFilm(anchors) {
     },
   });
   stage.add(gate.update);
+  stage.add(sound.update); // first: the visuals read this frame's levels and hits
   stage.add(createHud());
   stage.add(createFx());
   stage.add(createSphereLayer());
@@ -65,14 +67,28 @@ function startFilm(anchors) {
   stage.add(createSkills());
   stage.add(createSwarmLayer());
   stage.add(createContact());
-  stage.add(sound.update);
+  wireUiSound(sound);
   motionToggle('Motion on', () => {
     setMotionOverride('0');
     location.reload();
   });
   stage.start();
   stage.pause(); // no scrolling past the entrance
-  if (import.meta.env.DEV) window.__nrStage = stage;
+  if (import.meta.env.DEV) Object.assign(window, { __nrStage: stage, __nrSound: sound });
+}
+
+// interface sounds: a tick when the pointer reaches something clickable, a press when it is used
+function wireUiSound(sound) {
+  bindSfx(sound.ui);
+  const hit = 'a, button, [data-scrub]';
+  let over = null;
+  if (matchMedia('(pointer: fine)').matches)
+    document.addEventListener('pointerover', (e) => {
+      const t = e.target.closest?.(hit);
+      if (t && t !== over) sound.ui('tick');
+      over = t;
+    });
+  document.addEventListener('click', (e) => e.target.closest?.('a, button') && sound.ui('press'), true);
 }
 
 function startStatic(fallback) {

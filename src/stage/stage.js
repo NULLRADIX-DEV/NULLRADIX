@@ -39,6 +39,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   let player = null;
   let t = T0, intro = null, raf = 0, last = 0, failed = false, selfFocus = false;
   let indexTop = Infinity; // document y where the index begins
+  let lastPlay = t, speed = 0;
   const pointer = { x: vw / 2, y: vh / 2, nx: 0, ny: 0, tx: 0, ty: 0, inside: false };
 
   const scrollY = () => (lenis ? lenis.scroll : window.scrollY);
@@ -114,7 +115,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     lenis?.stop();
     const eye = world.cam(target).eye;
     await jump.run({
-      text: (sc ? sc.label : W.SCENES[0].label).toUpperCase(),
+      text: (sc ? sc.label : W.labelAt(target)).toUpperCase(),
       xyz: `x ${f4(eye[0] / 10)}  y ${f4(-eye[1] / 10)}  z ${f4(eye[2] / 10)}`,
       land: () => {
         if (y === null) scrollToT(target, { immediate: true });
@@ -133,25 +134,29 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     }
   }
 
-  // in-page links jump to the scene's anchor
-  document.addEventListener('click', (e) => {
-    const a = e.target.closest('a[href^="#"]');
-    if (!a || e.defaultPrevented) return;
-    const id = a.getAttribute('href').slice(1);
+  /** jump to a scene (or 'index', 'main') through the lens; false if there is no such place */
+  function gotoScene(id, { focus = true } = {}) {
     const sc = id === 'index' ? INDEX : W.SCENES.find((s) => s.id === id);
-    if (!sc && id !== 'main') return;
-    e.preventDefault();
+    if (!sc && id !== 'main') return false;
     if (sc === INDEX) travel(W.DUR, sc, indexTop);
     else travel(sc ? sc.anchorT : T0, sc);
     history.replaceState(null, '', `#${id}`);
     // move keyboard focus with the camera, so Tab continues inside that scene
-    const heading = document.querySelector(`#${sc ? sc.id : 'top'} :is(h1, h2)`);
+    const heading = focus && document.querySelector(`#${sc ? sc.id : 'top'} :is(h1, h2)`);
     if (heading) {
       heading.setAttribute('tabindex', '-1');
       selfFocus = true;
       heading.focus({ preventScroll: true });
       selfFocus = false;
     }
+    return true;
+  }
+
+  // in-page links jump to the scene's anchor
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a || e.defaultPrevented) return;
+    if (gotoScene(a.getAttribute('href').slice(1))) e.preventDefault();
   }, on);
 
   // keyboard focus inside a scene that is not on screen: bring the camera there
@@ -235,7 +240,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   const film = { x: 0, y: 0 };
   const ctx = {
     t, shownT: t, cam: null, world, fit, vw, vh, fmt, pointer, impact: null,
-    progress: 0, buffer: 0, intro: false, playing: false, cover: 0, buried: false,
+    progress: 0, buffer: 0, intro: false, playing: false, cover: 0, buried: false, speed: 0,
     proj(p, out = [0, 0, 0, 0]) {
       const r = world.proj(ctx.cam, p);
       if (r[2] < 40) return null;
@@ -266,6 +271,12 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
       t += (target - t) * Math.min(1, dt * 14);
       if (Math.abs(target - t) < 1e-4) t = target;
     }
+    // playhead speed in film seconds per second, signed; jumps and the intro are not motion
+    const step = t - lastPlay;
+    lastPlay = t;
+    const v = intro || jump.busy || !dt || Math.abs(step) >= 1.5 ? 0 : step / dt;
+    speed += (v - speed) * Math.min(1, dt * 12);
+    if (Math.abs(speed) < 1e-3) speed = 0;
 
     player?.setFrame(t * W.FPS);
     const shown = player && player.frame >= 0 ? player.frame / W.FPS : t;
@@ -293,6 +304,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     ctx.intro = !!intro;
     ctx.film = film;
     ctx.dt = dt;
+    ctx.speed = speed;
     // how far the index has risen over the film: 0 below the viewport, 1 once its top reaches the top
     const rise = (scrollY() + vh - indexTop) / vh;
     ctx.cover = Math.max(0, Math.min(1, rise));
@@ -328,6 +340,27 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
       subs.push(fn);
     },
     scrollToT,
+    /** through the lens to any film time */
+    goto(target) {
+      travel(Math.max(T0, Math.min(W.DUR, target)), null);
+    },
+    gotoScene,
+    get jumping() {
+      return jump.busy;
+    },
+    /** telemetry for the director's cut */
+    get stats() {
+      return {
+        frame: player ? player.frame : -1,
+        target: Math.round(t * W.FPS),
+        decodeFps: player ? player.decodeFps : 0,
+        mode: player ? player.mode : '-',
+        gops: player ? player.cached : 0,
+        buffer: player ? player.progress : 0,
+        velocity: lenis ? lenis.velocity : 0,
+        speed,
+      };
+    },
     pause() {
       lenis?.stop();
     },

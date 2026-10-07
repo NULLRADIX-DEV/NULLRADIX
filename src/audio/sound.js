@@ -6,6 +6,9 @@
  *  - impacts, pings, a riser and the drop whenever the playhead crosses a cue (either way); the four
  *    bore slams duck the bed and ring a step higher each
  *  - under the index (the page after the film) everything sounds muffled, as if from below
+ *  - interface sounds (ticks, presses, typing, a tape rewind when the film runs back fast) on their
+ *    own bus that the muffle does not touch
+ * Visuals can listen: on() reports every hit as it plays, level/bands come from an analyser.
  * On by default. Browsers only let audio start after a real gesture (click, key, tap - not the
  * wheel), so it is armed and starts with the first one. Switching it off is remembered.
  */
@@ -16,6 +19,8 @@ const BEATS = [];
 for (let b = 6.5; b < 16.7; b += 0.5) BEATS.push(+b.toFixed(2));
 const TONE = { top: 420, about: 950, work: 620, skills: 760, contact: 340 };
 const SLAM_NOTES = [220, 261.63, 293.66, 329.63]; // Frontend, Backend, Mobile, Infrastructure
+const BANDS = [[20, 140], [140, 600], [600, 2500], [2500, 9000]]; // Hz, for the visuals
+const SILENT = [0, 0, 0, 0];
 
 export function createSound({ arm = true } = {}) {
   const btn = qs('[data-sound]');
@@ -29,6 +34,13 @@ export function createSound({ arm = true } = {}) {
   }
   let ac = null, running = false, lastT = null;
   let master, bed, drone, droneFilter, air, airFilter, wet, noise, sat, under, page, lastCover = -1;
+  let comp, uiBus, analyser, fbins, tbins;
+  let level = 0, rewindAt = -1e9;
+  const bands = [0, 0, 0, 0];
+  const listeners = new Set();
+  const emit = (kind, amp = 1) => {
+    for (const fn of listeners) fn({ kind, amp });
+  };
 
   function impulse(seconds, decay) {
     const len = Math.round(ac.sampleRate * seconds), buf = ac.createBuffer(2, len, ac.sampleRate);
@@ -41,7 +53,7 @@ export function createSound({ arm = true } = {}) {
 
   function build() {
     ac = new AudioContext();
-    const comp = ac.createDynamicsCompressor();
+    comp = ac.createDynamicsCompressor();
     comp.threshold.value = -18;
     comp.ratio.value = 4;
     // soft clip after the compressor: linear up to 0.7, then bends into 1 - loud hits never crackle
@@ -65,6 +77,16 @@ export function createSound({ arm = true } = {}) {
     under.Q.value = 0.5;
     page = ac.createGain();
     master.connect(under).connect(page).connect(comp);
+    uiBus = ac.createGain(); // interface sounds: straight to the compressor, never muffled
+    uiBus.connect(comp);
+    // what visuals react to: the film's sound and the interface, before the muffle
+    analyser = ac.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.55;
+    master.connect(analyser);
+    uiBus.connect(analyser);
+    fbins = new Uint8Array(analyser.frequencyBinCount);
+    tbins = new Float32Array(analyser.fftSize);
     const verb = ac.createConvolver();
     verb.buffer = impulse(3.2, 2.6);
     wet = ac.createGain();
@@ -223,6 +245,102 @@ export function createSound({ arm = true } = {}) {
       o.stop(t + d + 0.05);
     }
   }
+  /* ---------------- interface ---------------- */
+  const lastUi = {};
+  function tone(type, f0, f1, dur, amp, dest = uiBus, at = 0) {
+    const t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    env(g, t, 0.002, amp, dur);
+    o.connect(g).connect(dest);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  }
+  function hiss(f, q, dur, amp, dest = uiBus) {
+    const t = ac.currentTime, s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noise;
+    fl.type = 'bandpass';
+    fl.frequency.value = f;
+    fl.Q.value = q;
+    env(g, t, 0.001, amp, dur);
+    s.connect(fl).connect(g).connect(dest);
+    s.start(t, Math.random() * 1.5);
+    s.stop(t + dur + 0.05);
+  }
+  // the tape running back: a squealing, wobbling sweep down
+  function rewind() {
+    const t = ac.currentTime, o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain();
+    const f = ac.createBiquadFilter(), g = ac.createGain(), s = ac.createBufferSource(), nf = ac.createBiquadFilter(), ng = ac.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(1900, t);
+    o.frequency.exponentialRampToValueAtTime(260, t + 0.55);
+    lfo.frequency.value = 23;
+    lg.gain.value = 70;
+    lfo.connect(lg).connect(o.frequency);
+    f.type = 'bandpass';
+    f.Q.value = 3;
+    f.frequency.setValueAtTime(2600, t);
+    f.frequency.exponentialRampToValueAtTime(500, t + 0.55);
+    env(g, t, 0.02, 0.07, 0.55);
+    o.connect(f).connect(g).connect(master);
+    s.buffer = noise;
+    nf.type = 'bandpass';
+    nf.Q.value = 1.4;
+    nf.frequency.setValueAtTime(5000, t);
+    nf.frequency.exponentialRampToValueAtTime(900, t + 0.6);
+    env(ng, t, 0.01, 0.16, 0.6);
+    s.connect(nf).connect(ng).connect(master);
+    for (const n of [o, lfo, s]) {
+      n.start(t);
+      n.stop(t + 0.7);
+    }
+  }
+  const UI = {
+    tick: [40, () => tone('sine', 3000 + Math.random() * 700, 2400, 0.03, 0.035)],
+    press: [60, () => {
+      tone('triangle', 1700, 1500, 0.025, 0.05);
+      tone('triangle', 1150, 1000, 0.03, 0.045, uiBus, 0.035);
+      tone('sine', 190, 90, 0.06, 0.08);
+    }],
+    type: [22, () => {
+      hiss(2400 + Math.random() * 2400, 1.6, 0.025, 0.12);
+      tone('square', 700 + Math.random() * 300, 500, 0.012, 0.012);
+    }],
+    enter: [80, () => {
+      tone('sine', 880, 1320, 0.07, 0.06);
+      tone('sine', 1760, 1760, 0.25, 0.025, uiBus, 0.06);
+    }],
+    whoosh: [150, () => {
+      const t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = noise;
+      f.type = 'bandpass';
+      f.Q.value = 1.2;
+      f.frequency.setValueAtTime(350, t);
+      f.frequency.exponentialRampToValueAtTime(3200, t + 0.35);
+      f.frequency.exponentialRampToValueAtTime(500, t + 0.8);
+      env(g, t, 0.12, 0.22, 0.7);
+      s.connect(f).connect(g).connect(uiBus);
+      g.connect(wet);
+      s.start(t);
+      s.stop(t + 1);
+      tone('sine', 70, 40, 0.5, 0.12);
+    }],
+    power: [200, () => {
+      tone('sine', 140, 900, 0.22, 0.07);
+      tone('square', 2200, 2200, 0.015, 0.02, uiBus, 0.22);
+    }],
+    off: [200, () => tone('sine', 900, 120, 0.22, 0.06)],
+  };
+  function ui(kind) {
+    if (!running || !UI[kind]) return;
+    const [gap, play] = UI[kind], now = performance.now();
+    if (now - (lastUi[kind] || 0) < gap) return;
+    lastUi[kind] = now;
+    play();
+    emit(`ui:${kind}`);
+  }
+
   const HIT = {
     shock: (a) => { burst(0.5 * a, 1.4, 9000, 200); boom(0.6 * a); },
     pass: (a) => burst(0.35 * a, 0.8, 3000, 400),
@@ -294,9 +412,27 @@ export function createSound({ arm = true } = {}) {
   render();
 
   return {
+    get running() {
+      return running;
+    },
+    /** 0..1, follows the loudness of what plays */
+    get level() {
+      return running ? level : 0;
+    },
+    /** 0..1 each: lows, low mids, mids, highs */
+    get bands() {
+      return running ? bands : SILENT;
+    },
+    /** every hit as it plays: fn({kind, amp}) - film cues, 'beat', 'rewind', 'ui:*', 'jump:*' */
+    on(fn) {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
+    ui,
     /** the scene jump: a whoosh into the origin, a lock-on ping, an impact as it opens */
     jump(phase) {
       if (!running) return;
+      emit(`jump:${phase}`);
       if (phase === 'out') {
         burst(0.45, 0.5, 9000, 260);
         boom(0.35, 320, 60, 0.45);
@@ -329,10 +465,41 @@ export function createSound({ arm = true } = {}) {
       // crossings: small steps only - a nav jump across the film should not fire everything at once
       if (lastT !== null && t !== lastT && Math.abs(t - lastT) < 1.5) {
         const lo = Math.min(t, lastT), hi = Math.max(t, lastT);
-        for (const c of CUES) if (c.t > lo && c.t <= hi) HIT[c.kind]?.(c.amp, c);
-        for (const b of BEATS) if (b > lo && b <= hi && !CUES.some((c) => Math.abs(c.t - b) < 0.05)) kick(0.7);
+        for (const c of CUES)
+          if (c.t > lo && c.t <= hi) {
+            HIT[c.kind]?.(c.amp, c);
+            emit(c.kind, c.amp);
+          }
+        for (const b of BEATS)
+          if (b > lo && b <= hi && !CUES.some((c) => Math.abs(c.t - b) < 0.05)) {
+            kick(0.7);
+            emit('beat', 0.7);
+          }
       }
       lastT = t;
+      // running back fast: the tape rewinds, once per gesture
+      const wall = performance.now();
+      if (ctx.speed < -2.5) {
+        if (wall - rewindAt > 800 && ctx.cover < 0.5) {
+          rewind();
+          emit('rewind');
+        }
+        rewindAt = wall;
+      }
+      // levels for the visuals: rms of what plays, energy in four bands
+      analyser.getFloatTimeDomainData(tbins);
+      let sum = 0;
+      for (let i = 0; i < tbins.length; i++) sum += tbins[i] * tbins[i];
+      const rms = Math.min(1, Math.sqrt(sum / tbins.length) * 3);
+      level += (rms - level) * (rms > level ? 0.6 : 0.12);
+      analyser.getByteFrequencyData(fbins);
+      const hz = ac.sampleRate / analyser.fftSize;
+      BANDS.forEach(([a, b], k) => {
+        let m = 0, n = 0;
+        for (let i = Math.max(1, Math.floor(a / hz)); i < Math.min(fbins.length, Math.ceil(b / hz)); i++, n++) m += fbins[i];
+        const v = n ? m / n / 255 : 0;
+        bands[k] += (v - bands[k]) * (v > bands[k] ? 0.7 : 0.15);
+      });
       const cover = Math.round(ctx.cover * 100) / 100;
       if (cover !== lastCover) {
         lastCover = cover;

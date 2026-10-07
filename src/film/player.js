@@ -400,6 +400,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
     get progress() { return loadedBytes / totalBytes; },
     get frame() { return shownFrame; },
     get decodeFps() { return decodeFps; },
+    get cached() { return cache.size; },
     resize(vw, vh, ratio) {
       dpr = Math.min(ratio || 1, 2);
       canvas.width = Math.round(vw * dpr);
