@@ -1,8 +1,10 @@
 /**
  * Hero: the headline condenses out of the intro (variable axes slam from wide/heavy to the
  * resting cut), leans towards the cursor, and is squeezed out as the camera dives.
+ * Its line breaks are those of the resting cut, fixed once measured: the wide letters of the intro
+ * (and the cursor's bulge) must never re-wrap the sentence while it condenses.
  */
-import { qs, qsa } from '../utils/dom.js';
+import { qs, qsa, el } from '../utils/dom.js';
 import { P, eOut, eIO, lerp, show, splitChars } from './kit.js';
 
 export function createHero() {
@@ -17,7 +19,29 @@ export function createHero() {
       return [r.left + r.width / 2, r.top + r.height / 2];
     }));
   };
-  addEventListener('resize', () => (rects = null));
+  // measure where the resting cut wraps, then hold those breaks (the lines do not wrap by themselves)
+  const title = qs('.hero__title');
+  function lockBreaks() {
+    title.classList.add('is-measuring'); // resting axes, free wrapping
+    for (const line of lines) {
+      for (const b of line.querySelectorAll('br.hero__br')) b.remove();
+      let top = null;
+      for (const w of line.querySelectorAll('.w')) {
+        const y = w.offsetTop;
+        if (top !== null && y > top + 2) line.insertBefore(el('br', { class: 'hero__br' }), w);
+        top = y;
+      }
+    }
+    title.classList.remove('is-measuring');
+    rects = null;
+  }
+  document.fonts.ready.then(lockBreaks);
+  let resizeT = 0;
+  addEventListener('resize', () => {
+    rects = null;
+    clearTimeout(resizeT);
+    resizeT = setTimeout(lockBreaks, 120);
+  });
 
   return (ctx) => {
     const t = ctx.t;

@@ -25,15 +25,15 @@ export function createHints({ terminal, cut }) {
       id: 'term',
       at: (ctx) => ctx.t >= 5.2 && ctx.t < 44,
       key: coarse ? '>_' : '^',
-      text: coarse ? 'This site has a terminal. Tap >_ and type help.' : 'Psst - this site has a terminal. Press ^ and type help.',
+      text: coarse ? 'Psst - this site has a terminal. Tap >_ below and type help.' : 'Psst - this site has a terminal. Press ^ and type help.',
       chip: '[data-term-open]',
       go: () => terminal.open(),
     },
     {
       id: 'cut',
-      at: (ctx) => ctx.t >= 19.6 && ctx.t < 44,
+      at: (ctx) => !coarse && ctx.t >= 19.6 && ctx.t < 44, // a keyboard thing: not on touch screens
       key: 'D',
-      text: coarse ? "Tap D for the director's cut - the machinery behind the film." : "Press D for the director's cut - the machinery behind the film.",
+      text: "Press D for the director's cut - the machinery behind the film.",
       chip: '[data-cut-open]',
       go: () => cut.toggle(),
     },

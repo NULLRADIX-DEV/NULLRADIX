@@ -213,7 +213,7 @@ body[data-mode='film'].has-cursor .hint * {
   font-size: 0.88rem;
   color: var(--c-muted);
 }
-.dossier__keys > span:not(.label) {
+.dossier__keys > span:not(.label, .k-touch) {
   display: inline-flex;
   align-items: center;
   gap: 0.6em;

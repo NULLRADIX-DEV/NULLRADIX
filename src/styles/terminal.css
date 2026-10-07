@@ -161,12 +161,25 @@
 .k-touch {
   display: none;
 }
+/* touch screens have no keyboard shortcuts: no key caps, no director's cut chip, the terminal is a
+   plain >_ button */
 @media (pointer: coarse) {
-  .k-fine {
-    display: none;
+  .k-fine,
+  [data-cut-open],
+  .wordplay kbd,
+  .hint kbd {
+    display: none !important;
   }
   .k-touch {
     display: inline;
+  }
+  .hud__key kbd {
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 1.1em;
   }
 }
 @media (max-width: 760px) {

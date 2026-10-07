@@ -95,6 +95,27 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
   const waits = new Map(); // gop -> { need, got, pending, resolve, reject } while it decodes
   const busy = new Set(); // gops scheduled but not finished
 
+  // a decoded frame as an ImageBitmap; browsers that cannot make one straight from a VideoFrame
+  // (some Safari versions) get it through a canvas copy instead
+  let viaCanvas = false, scratch = null;
+  async function toBitmap(frame) {
+    if (!viaCanvas) {
+      try {
+        return await createImageBitmap(frame);
+      } catch {
+        viaCanvas = true;
+      }
+    }
+    const w = frame.displayWidth, h = frame.displayHeight;
+    if (!scratch) scratch = document.createElement('canvas');
+    if (scratch.width !== w || scratch.height !== h) {
+      scratch.width = w;
+      scratch.height = h;
+    }
+    scratch.getContext('2d').drawImage(frame, 0, 0, w, h);
+    return createImageBitmap(scratch);
+  }
+
   function ensureDecoder(mp4) {
     const key = mp4.codec + ':' + mp4.description.join(',');
     if (decoder && decoder.state === 'configured' && decoderKey === key) return;
@@ -110,14 +131,17 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
             if (arr) arr[idx % man.gop] = frame;
             else frame.close();
           } else {
-            const p = createImageBitmap(frame).then(
+            const p = toBitmap(frame).then(
               (bmp) => {
                 frame.close();
                 const arr = cache.get(g);
                 if (arr) arr[idx % man.gop] = bmp;
                 else bmp.close();
               },
-              () => frame.close(),
+              (e) => {
+                frame.close();
+                throw e; // a decode failure: twice and the <video> fallback takes over
+              },
             );
             w?.pending.push(p);
           }
@@ -260,8 +284,13 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
       v = document.createElement('video');
       v.muted = true;
       v.playsInline = true;
+      v.setAttribute('muted', ''); // iOS reads the attributes for inline, silent playback
+      v.setAttribute('playsinline', '');
       v.preload = 'auto';
       v.src = URL.createObjectURL(new Blob([s.buf], { type: 'video/mp4' }));
+      v.load();
+      // iOS only paints a paused video's frames once it has played: a muted inline play primes it
+      v.play().then(() => v.pause(), () => {});
       v.addEventListener('error', () => {
         setStatus('failed');
         first.rej(new Error('film: <video> fallback failed'));

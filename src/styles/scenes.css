@@ -37,9 +37,20 @@ body[data-mode='film'] .scene__layer :is(.hero__title, .slam__k, .project__name,
 }
 .hero__title .line {
   display: block;
-  overflow: hidden;
+  /* a mask at the top and bottom only: the wide letters of the intro may run past the right edge */
+  clip-path: inset(0 -100vw 0 -100vw);
   padding: 0 0.1em 0.05em 0;
   margin-bottom: -0.05em;
+}
+/* film: the lines keep the breaks of the resting cut (hero.js measures them) */
+body[data-mode='film'] .hero__title .line__inner {
+  white-space: nowrap;
+}
+body[data-mode='film'] .hero__title.is-measuring .line__inner {
+  white-space: normal;
+}
+.hero__title.is-measuring .ch {
+  font-variation-settings: 'wght' 640, 'wdth' 78, 'opsz' 144 !important;
 }
 .hero__title .line__inner {
   display: inline-block;
