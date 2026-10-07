@@ -2,6 +2,7 @@
  * Hints for what is hidden in the film: once per session, a small card above the HUD says that
  * there is a terminal (when the film starts moving) and a director's cut (at the first project).
  * The matching key chip in the HUD pulses while it shows; a click on the card does the thing.
+ * Phones get none of that - only a note that the full thing lives on a desktop.
  */
 import { qs } from '../utils/dom.js';
 import { sfx } from '../utils/sfx.js';
@@ -20,24 +21,35 @@ export function createHints({ terminal, cut }) {
   } catch {
     /* every visit then */
   }
-  const HINTS = [
-    {
-      id: 'term',
-      at: (ctx) => ctx.t >= 5.2 && ctx.t < 44,
-      key: coarse ? '>_' : '^',
-      text: coarse ? 'Psst - this site has a terminal. Tap >_ below and type help.' : 'Psst - this site has a terminal. Press ^ and type help.',
-      chip: '[data-term-open]',
-      go: () => terminal.open(),
-    },
-    {
-      id: 'cut',
-      at: (ctx) => !coarse && ctx.t >= 19.6 && ctx.t < 44, // a keyboard thing: not on touch screens
-      key: 'D',
-      text: "Press D for the director's cut - the machinery behind the film.",
-      chip: '[data-cut-open]',
-      go: () => cut.toggle(),
-    },
-  ];
+  const HINTS = coarse
+    ? [
+        // phones get no keyboard tricks, just where the full thing lives
+        {
+          id: 'desktop',
+          at: (ctx) => ctx.t >= 3 && ctx.t < 44,
+          key: '',
+          text: "Best on a desktop: sound, a terminal, the director's cut and more. Tap to copy the link.",
+          go: () => navigator.clipboard?.writeText('https://nullradix.de').catch(() => {}),
+        },
+      ]
+    : [
+        {
+          id: 'term',
+          at: (ctx) => ctx.t >= 5.2 && ctx.t < 44,
+          key: '^',
+          text: 'Psst - this site has a terminal. Press ^ and type help.',
+          chip: '[data-term-open]',
+          go: () => terminal.open(),
+        },
+        {
+          id: 'cut',
+          at: (ctx) => ctx.t >= 19.6 && ctx.t < 44,
+          key: 'D',
+          text: "Press D for the director's cut - the machinery behind the film.",
+          chip: '[data-cut-open]',
+          go: () => cut.toggle(),
+        },
+      ];
   let current = null, timer = 0, rest = 0;
 
   function show(h) {
@@ -49,17 +61,18 @@ export function createHints({ terminal, cut }) {
       /* not remembered */
     }
     keyEl.textContent = h.key;
+    keyEl.hidden = !h.key;
     text.textContent = h.text;
     root.hidden = false;
     requestAnimationFrame(() => root.classList.add('is-in'));
-    qs(h.chip)?.classList.add('is-calling');
+    if (h.chip) qs(h.chip)?.classList.add('is-calling');
     sfx('enter');
     timer = setTimeout(hide, SHOW_MS);
   }
   function hide() {
     if (!current) return;
     clearTimeout(timer);
-    qs(current.chip)?.classList.remove('is-calling');
+    if (current.chip) qs(current.chip)?.classList.remove('is-calling');
     root.classList.remove('is-in');
     setTimeout(() => !root.classList.contains('is-in') && (root.hidden = true), 320);
     current = null;

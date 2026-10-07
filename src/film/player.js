@@ -12,7 +12,7 @@ import { coverFit } from '../stage/cover.js';
 
 const US = 1e6;
 
-export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, software = false }) {
+export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, software = false, lean = false }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   let man = null, segs = [];
   let fit = null, dpr = 1;
@@ -27,7 +27,8 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
   let first;
   const firstFrame = new Promise((res, rej) => (first = { res, rej }));
   firstFrame.catch(() => {});
-  const gopCap = (navigator.deviceMemory || 4) >= 8 ? 4 : 2;
+  // phones (lean): fewer decoded frames held at once - a portrait GOP is ~85 MB of bitmaps
+  const gopCap = lean ? 2 : (navigator.deviceMemory || 4) >= 8 ? 4 : 2;
 
   const setStatus = (s) => {
     if (s !== status) {
@@ -89,7 +90,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
   /* ---------------- WebCodecs ---------------- */
   // GOPs are pipelined: up to MAX_INFLIGHT are queued at once, so the decoder never idles waiting for
   // us and frames it holds back get pushed out by the next GOP (a flush only when nothing follows).
-  const MAX_INFLIGHT = 3;
+  const MAX_INFLIGHT = lean ? 2 : 3;
   let decoder = null, decoderKey = '', decodeErrors = 0;
   let retryAt = 0, decodeFps = 0, inflight = 0, lastQueued = -1, lastDone = 0, idleSince = 0;
   const waits = new Map(); // gop -> { need, got, pending, resolve, reject } while it decodes
@@ -390,6 +391,22 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
     setStatus(f === target ? 'ready' : 'buffering');
   }
 
+  // never a black screen: no first frame in time -> the <video> fallback; nothing there either -> failed
+  // (the page then shows its static version)
+  function watchdog() {
+    setTimeout(() => {
+      if (destroyed || shownFrame >= 0) return;
+      if (mode === 'webcodecs') {
+        console.warn('film: no frame from WebCodecs, trying <video>');
+        switchToVideo();
+        watchdog();
+      } else {
+        setStatus('failed');
+        first.rej(new Error('film: no frame'));
+      }
+    }, 8000);
+  }
+
   /* ---------------- api ---------------- */
   const ready = (async () => {
     man = await (await fetch(base + 'manifest.json')).json();
@@ -416,6 +433,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
       }
     }
     started = true;
+    watchdog();
     if (!ok) await switchToVideo();
     else pump();
     await firstFrame;

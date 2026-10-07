@@ -36,7 +36,7 @@ export const projects = [
     status: "live",
     links: {
       live: "https://play.google.com/store/apps/details?id=com.bookheart.app",
-      repo: "https://github.com/Tr1sma/BookLoggerApp",
+      repo: "https://github.com/NULLRADIX-DEV/BookLoggerApp",
     },
     coord: { x: -28, y: 68 }, // polished consumer mobile product (Frontend + Product quadrant)
   },
@@ -50,7 +50,7 @@ export const projects = [
     status: "live",
     links: {
       live: "https://demo.noose.info",
-      repo: "https://github.com/Tr1sma/NOOSE-Website",
+      repo: "https://github.com/NULLRADIX-DEV/NOOSE-Website",
     },
     coord: { x: 48, y: 45 }, // backend-heavy product (Backend + Product quadrant)
   },
@@ -90,13 +90,13 @@ export const projects = [
     id: "nullradix",
     name: "NULLRADIX",
     blurb:
-      "This site - a monochrome portfolio that behaves like a graphing instrument: kinetic type, an interactive canvas coordinate field, built from scratch with no UI framework.",
-    tech: ["Vanilla JS", "Canvas", "GSAP", "Vite"],
+      "This site - a portfolio told as a 3D film the scroll plays: decoded live with WebCodecs, real HTML riding its camera, particles you can push, sound made on the fly and a terminal for the curious. No UI framework.",
+    tech: ["Vanilla JS", "WebCodecs", "WebGL2", "Web Audio", "Vite"],
     year: 2026,
     status: "live",
     links: {
       live: "https://nullradix.de",
-      repo: "https://github.com/Tr1sma/NULLRADIX",
+      repo: "https://github.com/NULLRADIX-DEV/NULLRADIX",
     },
     coord: { x: -80, y: 48 }, // frontend product (this site)
   },
