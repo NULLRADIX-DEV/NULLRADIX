@@ -119,7 +119,7 @@ export function createWordplay(swarm) {
     if (live && !demoed) runDemo();
     const calling = !buf && performance.now() < call;
     hint.classList.toggle('is-calling', calling);
-    const want = !live ? '' : buf ? 'Esc to reset' : calling ? 'Your turn - type anything' : coarse ? 'Tap the wordmark to type' : 'Type anything';
+    const want = !live ? '' : buf ? 'Esc to reset' : calling ? (coarse ? 'Your turn - tap to type' : 'Your turn - type anything') : coarse ? 'Tap the wordmark to type' : 'Type anything';
     if (want && want !== shown) hintText.textContent = want;
     shown = want || shown;
     const top = swarm.box.y0 - 46;
