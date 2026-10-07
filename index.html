@@ -87,10 +87,14 @@
         <button class="hud__btn hud__term" type="button" data-term-open aria-label="Terminal" title="Terminal (~)">&gt;_</button>
         <span class="hud__lens" data-hud-lens aria-hidden="true"></span>
       </div>
-      <div class="hud__group hud__group--end" aria-hidden="true">
-        <span class="hud__buffer" data-hud-buffer></span>
-        <span class="hud__time" data-hud-time>t 00.00 s</span>
-        <span class="hud__bar"><i class="hud__loaded" data-hud-loaded></i><i class="hud__progress" data-hud-progress></i></span>
+      <div class="hud__group hud__group--end">
+        <span class="hud__buffer" data-hud-buffer aria-hidden="true"></span>
+        <span class="hud__time" data-hud-time aria-hidden="true">t 00.00 s</span>
+        <div class="scrub" data-scrub role="slider" tabindex="0" aria-label="Film timeline" aria-valuemin="3" aria-valuemax="50" aria-valuenow="3">
+          <span class="hud__bar"><i class="hud__loaded" data-hud-loaded></i><i class="hud__progress" data-hud-progress></i></span>
+          <span class="scrub__marks" data-scrub-marks aria-hidden="true"></span>
+          <span class="scrub__tip" data-scrub-tip aria-hidden="true"><span class="scrub__thumb" data-scrub-thumb></span><span class="scrub__label" data-scrub-label></span></span>
+        </div>
       </div>
     </div>
 

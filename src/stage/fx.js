@@ -19,7 +19,7 @@ export function createFx() {
   if (fine) {
     document.body.classList.add('has-cursor');
     document.addEventListener('pointerover', (e) =>
-      cursor.classList.toggle('is-link', !!e.target.closest?.('a, button, .anchors.is-plot .anchor--node')),
+      cursor.classList.toggle('is-link', !!e.target.closest?.('a, button, [data-scrub], .anchors.is-plot .anchor--node')),
     );
   }
 

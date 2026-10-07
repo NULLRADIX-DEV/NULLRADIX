@@ -23,6 +23,7 @@ import { createWordplay } from './scenes/wordplay.js';
 import { createTerminal } from './modules/terminal.js';
 import { createCut } from './stage/cut.js';
 import { createReactive } from './stage/react.js';
+import { createScrub } from './stage/scrub.js';
 import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
@@ -66,6 +67,7 @@ function startFilm(anchors, panel) {
   const react = createReactive({ sound, stage });
   stage.add(react.update);
   stage.add(createHud());
+  stage.add(createScrub({ stage }));
   stage.add(createFx());
   stage.add(createSphereLayer({ react }));
   stage.add(createHero());

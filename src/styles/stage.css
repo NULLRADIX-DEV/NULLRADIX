@@ -407,6 +407,94 @@ body[data-mode='film'].has-cursor .panel button {
 .hud__progress {
   background: var(--c-near);
 }
+
+/* ============ the timeline scrubber ============ */
+.scrub {
+  position: relative;
+  align-self: center;
+  padding: 9px 0;
+  margin: -9px 0;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: none;
+  outline-offset: 6px;
+}
+.scrub .hud__bar {
+  display: block;
+  width: clamp(160px, 22vw, 380px);
+  transition: height var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.scrub:hover .hud__bar,
+.scrub:focus-visible .hud__bar,
+.scrub.is-hover .hud__bar {
+  height: 3px;
+}
+.scrub__marks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0;
+  pointer-events: none;
+}
+.scrub__mark {
+  position: absolute;
+  top: -4px;
+  width: 1px;
+  height: 9px;
+  background: var(--c-mid);
+}
+.scrub__mark--minor {
+  top: -2px;
+  height: 5px;
+  background: var(--c-far);
+}
+.scrub__tip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  pointer-events: none;
+}
+.scrub.is-hover .scrub__tip {
+  opacity: 1;
+  transform: none;
+}
+.scrub__thumb {
+  border: 1px solid color-mix(in oklab, var(--c-near) 30%, transparent);
+  border-radius: 4px;
+  background-color: var(--c-void);
+  background-repeat: no-repeat;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+.scrub__label {
+  white-space: nowrap;
+  color: var(--c-near);
+  letter-spacing: 0.14em;
+}
+/* phones: the timeline runs the full width along the bottom edge, under the buttons */
+@media (max-width: 760px) {
+  .hud--bottom {
+    padding-bottom: 30px;
+  }
+  .scrub {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 2px;
+    margin: 0;
+    padding: 10px 0;
+  }
+  .scrub .hud__bar {
+    width: 100%;
+  }
+}
 @media (max-width: 760px) {
   .hud,
   .hud__group {

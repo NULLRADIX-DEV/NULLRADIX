@@ -373,6 +373,12 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     get decodeFps() {
       return player ? player.decodeFps : 0;
     },
+    get fmt() {
+      return fmt;
+    },
+    get manifest() {
+      return player ? player.manifest : null;
+    },
     ready: () => player.ready,
     start() {
       startIntro();
