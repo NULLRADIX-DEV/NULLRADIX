@@ -43,7 +43,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   let t = T0, intro = null, raf = 0, last = 0, failed = false, selfFocus = false;
   let indexTop = Infinity; // document y where the index begins
   let lastPlay = t, speed = 0, kick = 0, fxSpeed = true;
-  const pointer = { x: vw / 2, y: vh / 2, nx: 0, ny: 0, tx: 0, ty: 0, inside: false };
+  const pointer = { x: vw / 2, y: vh / 2, nx: 0, ny: 0, tx: 0, ty: 0, inside: false, tilt: false };
 
   const scrollY = () => (lenis ? lenis.scroll : window.scrollY);
   const scrollT = () => map.toT(scrollY() / unit);
@@ -174,13 +174,50 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   addEventListener('pointermove', (e) => {
     pointer.x = e.clientX;
     pointer.y = e.clientY;
+    pointer.inside = true;
+    if (e.pointerType === 'touch') return; // a finger pushes particles; the parallax is the phone's tilt
     pointer.tx = (e.clientX / vw) * 2 - 1;
     pointer.ty = (e.clientY / vh) * 2 - 1;
-    pointer.inside = true;
   }, on);
-  document.documentElement.addEventListener('pointerleave', () => {
+  // phones: a finger on the glass pushes the particles too, also while it scrolls the page
+  const touch = (e) => {
+    const p = e.touches[0];
+    if (!p) return;
+    pointer.x = p.clientX;
+    pointer.y = p.clientY;
+    pointer.inside = true;
+  };
+  const untouch = (e) => {
+    if (!e.touches.length) pointer.inside = false;
+  };
+  addEventListener('touchstart', touch, { passive: true, signal: listen.signal });
+  addEventListener('touchmove', touch, { passive: true, signal: listen.signal });
+  addEventListener('touchend', untouch, { passive: true, signal: listen.signal });
+  addEventListener('touchcancel', untouch, { passive: true, signal: listen.signal });
+
+  // and the film drifts with how the phone is held (relative to how it was held at first)
+  let tiltBase = null;
+  function onTilt(e) {
+    if (e.beta == null || e.gamma == null) return;
+    if (!tiltBase) tiltBase = { b: e.beta, g: e.gamma };
+    tiltBase.b += (e.beta - tiltBase.b) * 0.004; // slowly settles on a new way of holding it
+    tiltBase.g += (e.gamma - tiltBase.g) * 0.004;
+    const clamp = (v) => Math.max(-1, Math.min(1, v));
+    pointer.tx = clamp((e.gamma - tiltBase.g) / 15);
+    pointer.ty = clamp((e.beta - tiltBase.b) / 15);
+    pointer.tilt = true;
+  }
+  /** call inside a user gesture (iOS asks for permission) */
+  function enableTilt() {
+    if (!coarse || typeof DeviceOrientationEvent === 'undefined') return;
+    const go = () => addEventListener('deviceorientation', onTilt, on);
+    const ask = DeviceOrientationEvent.requestPermission;
+    if (typeof ask === 'function') ask.call(DeviceOrientationEvent).then((r) => r === 'granted' && go(), () => {});
+    else go();
+  }
+  document.documentElement.addEventListener('pointerleave', (e) => {
     pointer.inside = false;
-    pointer.tx = pointer.ty = 0;
+    if (e.pointerType !== 'touch') pointer.tx = pointer.ty = 0;
   }, on);
 
   // the fixed stage is the viewport minus scrollbars: watching it also catches the scrollbar appearing
@@ -350,6 +387,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
       travel(Math.max(T0, Math.min(W.DUR, target)), null);
     },
     gotoScene,
+    enableTilt,
     /** a beat: the film breathes in once (decays by itself) */
     pulse(k = 1) {
       kick = Math.max(kick, Math.min(1, k));
@@ -372,6 +410,8 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
         buffer: player ? player.progress : 0,
         velocity: lenis ? lenis.velocity : 0,
         speed,
+        pointer: { ...pointer },
+        film: { ...film },
       };
     },
     pause() {

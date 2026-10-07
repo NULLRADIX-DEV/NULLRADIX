@@ -47,6 +47,7 @@ function startFilm(anchors, panel) {
   const gate = createGate({
     onEnter: (withSound) => {
       sound.enter(withSound);
+      stage?.enableTilt(); // inside the click: iOS asks for motion access here
       stage?.resume();
     },
   });

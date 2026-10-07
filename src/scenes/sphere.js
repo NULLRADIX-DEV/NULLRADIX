@@ -41,9 +41,9 @@ export function createSphereLayer({ react = { state: { pulse: 0 } } } = {}) {
     // a uniform point cloud looks the same at any yaw, so the extra turn needs no unwinding at the
     // handoffs; the lean tilts the scan band, so it fades out with the handoff
     spin += dt * SPIN * a;
-    const want = ctx.pointer.inside ? ctx.pointer.nx : 0;
-    turn += (want * TURN - turn) * Math.min(1, dt * 2.5);
-    lean += ((ctx.pointer.inside ? ctx.pointer.ny : 0) * LEAN - lean) * Math.min(1, dt * 2.5);
+    const steer = ctx.pointer.inside || ctx.pointer.tilt; // the cursor, or how the phone is held
+    turn += ((steer ? ctx.pointer.nx : 0) * TURN - turn) * Math.min(1, dt * 2.5);
+    lean += ((steer ? ctx.pointer.ny : 0) * LEAN - lean) * Math.min(1, dt * 2.5);
 
     const { r, d, f, F, eye, sx, sy } = ctx.cam;
     // depth of the sphere's centre: points behind it are dimmed a little, which reads as volume
