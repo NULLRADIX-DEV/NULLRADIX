@@ -10,11 +10,13 @@ import * as W from '../film/world.js';
 import { createPlayer } from '../film/player.js';
 import { coverFit, toScreen, pickFormat } from './cover.js';
 import { makeScrollMap } from './scrollmap.js';
+import { createJump } from './jump.js';
+import { f4 } from './hud.js';
 
 const INTRO_KEY = 'nr-intro-seen';
 const OVER = 1.04; // cover overscan, room for parallax
 
-export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Promise.resolve() } = {}) {
+export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = () => {}, hold = Promise.resolve() } = {}) {
   const canvas = document.querySelector('[data-film]');
   const sections = [...document.querySelectorAll('[data-scene]')];
   const map = makeScrollMap(W.SCROLL_KEYS);
@@ -40,25 +42,6 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
   const scrollT = () => map.toT(scrollY() / unit);
 
   /* ---------------- film ---------------- */
-  // a half-resolution proxy decodes ~4x faster: tab flights run on it, landings switch back to full res
-  const proxyCanvas = document.querySelector('[data-film-proxy]');
-  let proxy = null, proxyReady = false;
-  function mountProxy() {
-    proxy?.destroy();
-    proxyReady = false;
-    if (!proxyCanvas || player?.mode !== 'webcodecs') return (proxy = null);
-    const q = createPlayer({ canvas: proxyCanvas, base: `/film/${fmt}/proxy/`, over: OVER, software: true });
-    proxy = q;
-    q.ready.then(
-      () => {
-        if (proxy !== q) return;
-        q.resize(vw, vh, devicePixelRatio);
-        proxyReady = true;
-      },
-      () => proxy === q && ((proxy = null), q.destroy()), // no proxy: flights use the full film, slower
-    );
-  }
-
   function mountPlayer() {
     player?.destroy();
     const p = createPlayer({
@@ -75,11 +58,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     });
     player = p;
     p.ready.then(
-      () => {
-        if (player !== p) return;
-        p.resize(vw, vh, devicePixelRatio);
-        mountProxy();
-      },
+      () => player === p && p.resize(vw, vh, devicePixelRatio),
       (e) => {
         if (player !== p) return;
         console.warn('film unavailable', e);
@@ -107,7 +86,6 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
   function scrollToT(target, { immediate = false } = {}) {
     const y = map.toV(target) * unit;
     if (intro) intro = null;
-    if (flight) land();
     if (lenis) {
       const dist = Math.abs(target - t);
       // immediate jumps also land while scrolling is held (entrance, open dialog)
@@ -115,60 +93,36 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     } else window.scrollTo({ top: y, behavior: immediate ? 'instant' : 'smooth' });
   }
 
-  // tab clicks fly the camera the whole way: accelerate, glide, brake - never faster than frames decode,
-  // so every frame on the way is shown in order and the page stays locked to it. Flights run on the
-  // half-resolution proxy (decodes ~4x faster) and land on the full-quality frame.
-  let flight = null;
-  const stageEl = canvas.parentElement;
-  function travel(target) {
+  // tab clicks jump: collapse into the origin, lock onto the destination, open onto it (jump.js)
+  const jump = createJump({ onPhase: onJump });
+  const nextFrame = () => new Promise(requestAnimationFrame);
+  let queued = null;
+  async function travel(target, sc) {
     if (intro) intro = null;
+    if (jump.busy) return void (queued = [target, sc]); // a click mid-jump runs right after it
     if (Math.abs(target - t) < 0.02) return;
-    const viaProxy = !!(proxy && proxyReady);
-    // the proxy takes over only once it shows the very frame we are on (armed), never a stale one
-    flight = { to: target, v: 0, dir: Math.sign(target - t), src: viaProxy ? proxy : player, armed: !viaProxy };
     lenis?.stop();
-    flight.src?.setLookahead(flight.src === proxy ? 10 : 4); // the proxy is tiny: decode far ahead
-  }
-  function land() {
-    flight?.src?.setLookahead(1);
-    flight = null;
-    stageEl.classList.remove('is-flying');
+    const eye = world.cam(target).eye;
+    await jump.run({
+      text: (sc ? sc.label : W.SCENES[0].label).toUpperCase(),
+      xyz: `x ${f4(eye[0] / 10)}  y ${f4(-eye[1] / 10)}  z ${f4(eye[2] / 10)}`,
+      land: () => {
+        scrollToT(target, { immediate: true });
+        t = target;
+      },
+      ready: async () => {
+        while (player && player.mode === 'webcodecs' && Math.abs(player.frame - target * W.FPS) > 1.01) await nextFrame();
+      },
+    });
     lenis?.start();
-  }
-  // any input of the visitor's own takes the controls back
-  for (const type of ['wheel', 'touchstart', 'keydown'])
-    addEventListener(type, (e) => flight && !(type === 'keydown' && e.key === 'Tab') && land(), { ...on, passive: true });
-  const ACCEL = 14; // film seconds per second²
-  function fly(dt) {
-    if (!flight.armed) return; // hold until the proxy shows this frame
-    dt = Math.min(dt, 1 / 40); // a hitch slows the flight down for a moment instead of skipping ahead
-    const src = flight.src;
-    // decoded frames per second; the proxy is trusted with a floor so a slow first measurement can't hold the start back
-    const rate = src === proxy ? Math.max(360, src.decodeFps || 0) : src && src.decodeFps ? src.decodeFps : 90;
-    const vmax = Math.min(18, Math.max(1.5, (0.8 * rate) / W.FPS)); // film seconds per second
-    const remaining = Math.abs(flight.to - t);
-    const vWant = Math.min(vmax, Math.sqrt(2 * ACCEL * remaining) + 0.15);
-    flight.v += Math.max(-ACCEL * 2 * dt, Math.min(ACCEL * dt, vWant - flight.v));
-    let next = t + flight.v * dt * flight.dir;
-    if ((flight.to - next) * flight.dir <= 0) next = flight.to;
-    // frame pacing: hold until the frames we are about to show are decoded
-    if (src && src.mode === 'webcodecs') {
-      // the frames we are about to show: f0, and f0 + 1 to blend towards (never past the landing frame)
-      const toF = Math.round(flight.to * W.FPS);
-      const f = next * W.FPS, f0 = Math.floor(f), f1 = flight.dir > 0 ? Math.min(f0 + 1, toF) : f0 + 1;
-      if (!src.has(f0) || (f - f0 > 0.02 && !src.has(f1))) {
-        next = t;
-        flight.v *= 0.92;
-      }
+    if (queued) {
+      const [nt, nsc] = queued;
+      queued = null;
+      travel(nt, nsc);
     }
-    t = next;
-    const y = map.toV(t) * unit; // the scrollbar travels along
-    if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
-    else window.scrollTo(0, y);
-    if (t === flight.to) land();
   }
 
-  // in-page links fly the camera to the scene's anchor
+  // in-page links jump to the scene's anchor
   document.addEventListener('click', (e) => {
     const a = e.target.closest('a[href^="#"]');
     if (!a || e.defaultPrevented) return;
@@ -176,7 +130,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     const sc = W.SCENES.find((s) => s.id === id);
     if (!sc && id !== 'main') return;
     e.preventDefault();
-    travel(sc ? sc.anchorT : T0);
+    travel(sc ? sc.anchorT : T0, sc);
     history.replaceState(null, '', `#${id}`);
     // move keyboard focus with the camera, so Tab continues inside that scene
     const heading = document.querySelector(`#${sc ? sc.id : 'top'} :is(h1, h2)`);
@@ -224,14 +178,8 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     if (nf !== fmt) {
       fmt = nf;
       world = W.makeWorld(fmt);
-      if (flight) land();
-      proxy?.destroy();
-      proxy = null;
       mountPlayer();
-    } else {
-      player?.resize(vw, vh, devicePixelRatio);
-      if (proxyReady) proxy.resize(vw, vh, devicePixelRatio);
-    }
+    } else player?.resize(vw, vh, devicePixelRatio);
     fit = coverFit(vw, vh, world.W, world.H, OVER);
     if (newUnit !== unit) {
       unit = newUnit;
@@ -296,24 +244,14 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
       target = intro ? ti : scrollT();
       if (intro) t = target;
     }
-    if (flight) fly(dt);
-    else if (!intro) {
+    if (!intro && !jump.busy) {
       target = scrollT();
       t += (target - t) * Math.min(1, dt * 14);
       if (Math.abs(target - t) < 1e-4) t = target;
     }
 
-    if (flight && !flight.armed) {
-      proxy.setFrame(t * W.FPS);
-      if (Math.abs(proxy.frame - t * W.FPS) < 0.75) {
-        flight.armed = true;
-        player?.setFrame(flight.to * W.FPS); // decode the landing frame in full quality meanwhile
-        stageEl.classList.add('is-flying');
-      }
-    }
-    const src = flight && flight.armed && flight.src === proxy ? proxy : player;
-    src?.setFrame(t * W.FPS);
-    const shown = src && src.frame >= 0 ? src.frame / W.FPS : t;
+    player?.setFrame(t * W.FPS);
+    const shown = player && player.frame >= 0 ? player.frame / W.FPS : t;
 
     // parallax: the film drifts against the pointer; overscan hides the edges
     pointer.nx += (pointer.tx - pointer.nx) * Math.min(1, dt * 3);
@@ -321,7 +259,6 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     film.x = -pointer.nx * 12;
     film.y = -pointer.ny * 8;
     canvas.style.transform = `translate3d(${film.x.toFixed(2)}px,${film.y.toFixed(2)}px,0)`;
-    if (proxyCanvas) proxyCanvas.style.transform = canvas.style.transform;
 
     // everything on the page follows the frame that is actually on screen, never the target ahead of it
     ctx.t = shown;
@@ -339,13 +276,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     ctx.intro = !!intro;
     ctx.film = film;
     ctx.dt = dt;
-    // fast tab flights: the page's copy steps aside (and stops costing frame time); film + HUD run on
-    const cruising = !!(flight && flight.armed && flight.v > 3);
-    if (cruising !== ctx.flying) {
-      ctx.flying = cruising;
-      document.body.classList.toggle('is-cruising', cruising);
-    }
-    for (const sub of subs) if (sub.always || !cruising) sub.fn(ctx);
+    for (const fn of subs) fn(ctx);
   }
 
   layout();
@@ -359,24 +290,21 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
       return ctx.t;
     },
     get frame() {
-      const src = flight && flight.armed && flight.src ? flight.src : player; // the frame actually on screen
-      return src ? src.frame : -1;
+      return player ? player.frame : -1;
     },
     get mode() {
       return player ? player.mode : null;
     },
     get decodeFps() {
-      const src = flight && flight.src ? flight.src : player;
-      return src ? src.decodeFps : 0;
+      return player ? player.decodeFps : 0;
     },
     ready: () => player.ready,
     start() {
       startIntro();
       raf = requestAnimationFrame(frame);
     },
-    /** per-frame subscriber; `always` keeps it running during fast flights (HUD, sound, ...) */
-    add(fn, { always = false } = {}) {
-      subs.push({ fn, always });
+    add(fn) {
+      subs.push(fn);
     },
     scrollToT,
     pause() {
@@ -391,7 +319,6 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
       cancelAnimationFrame(raf);
       lenis?.destroy();
       player?.destroy();
-      proxy?.destroy();
       sections.forEach((s) => (s.style.height = ''));
       canvas.style.transform = '';
     },

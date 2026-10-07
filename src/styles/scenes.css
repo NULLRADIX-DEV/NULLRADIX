@@ -16,8 +16,8 @@
 /* the chromatic split rides on every display line in film mode */
 body[data-mode='film'] .scene__layer :is(.hero__title, .principle__k, .project__name, .work__title, .skills__title, .contact__slogan) {
   text-shadow:
-    calc(var(--ca) * 1px) 0 0 rgba(255, 60, 60, 0.55),
-    calc(var(--ca) * -1px) 0 0 rgba(60, 220, 255, 0.55),
+    calc((var(--ca) + var(--cj, 0)) * 1px) 0 0 rgba(255, 60, 60, 0.55),
+    calc((var(--ca) + var(--cj, 0)) * -1px) 0 0 rgba(60, 220, 255, 0.55),
     0 0 40px rgba(12, 12, 13, 0.7);
 }
 .label__sep {

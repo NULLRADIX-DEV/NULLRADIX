@@ -44,6 +44,7 @@ function startFilm(anchors) {
   });
   stage = createStage({
     hold: gate.done,
+    onJump: (phase) => sound.jump(phase),
     onStatus: (s) => (document.body.dataset.filmState = s),
     onFail: () => {
       stage?.destroy();
@@ -51,16 +52,16 @@ function startFilm(anchors) {
       startStatic(true);
     },
   });
-  stage.add(gate.update, { always: true });
-  stage.add(createHud(), { always: true });
-  stage.add(createFx(), { always: true });
+  stage.add(gate.update);
+  stage.add(createHud());
+  stage.add(createFx());
   stage.add(createHero());
   stage.add(createAbout());
   stage.add(createWork(anchors));
   stage.add(createSkills());
   stage.add(createSwarmLayer());
   stage.add(createContact());
-  stage.add(sound.update, { always: true });
+  stage.add(sound.update);
   motionToggle('Motion on', () => {
     setMotionOverride('0');
     location.reload();

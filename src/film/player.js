@@ -91,7 +91,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
   // us and frames it holds back get pushed out by the next GOP (a flush only when nothing follows).
   const MAX_INFLIGHT = 3;
   let decoder = null, decoderKey = '', decodeErrors = 0;
-  let retryAt = 0, lookahead = 1, decodeFps = 0, inflight = 0, lastQueued = -1, lastDone = 0, idleSince = 0;
+  let retryAt = 0, decodeFps = 0, inflight = 0, lastQueued = -1, lastDone = 0, idleSince = 0;
   const waits = new Map(); // gop -> { need, got, pending, resolve, reject } while it decodes
   const busy = new Set(); // gops scheduled but not finished
 
@@ -193,7 +193,7 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
   function trimCache() {
     const g = Math.floor(target / man.gop);
     const keys = [...cache.keys()].filter((k) => !busy.has(k)).sort((a, b) => Math.abs(a - g) - Math.abs(b - g));
-    for (const k of keys.slice(Math.max(gopCap, lookahead + 2))) {
+    for (const k of keys.slice(gopCap)) {
       for (const b of cache.get(k)) b?.close();
       cache.delete(k);
     }
@@ -203,11 +203,6 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
   function nextWanted() {
     const g = Math.floor(target / man.gop);
     if (free(g)) return g;
-    if (lookahead > 1) {
-      // flying: keep several GOPs ready ahead of the playhead
-      for (let k = 1; k <= lookahead; k++) if (free(g + k * dir)) return g + k * dir;
-      return null;
-    }
     const pos = target % man.gop, n = g + (dir > 0 ? 1 : -1);
     const near = dir > 0 ? pos >= man.gop - 8 : pos <= 7;
     return near && free(n) ? n : null;
@@ -405,15 +400,6 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
     get progress() { return loadedBytes / totalBytes; },
     get frame() { return shownFrame; },
     get decodeFps() { return decodeFps; },
-    /** is frame f decoded and ready to show? (the <video> fallback can show anything, slowly) */
-    has(f) {
-      if (!man || f < 0 || f >= man.frames) return false;
-      return mode === 'video' || !!bitmapAt(f);
-    },
-    setLookahead(n) {
-      lookahead = Math.max(1, n);
-      pump();
-    },
     resize(vw, vh, ratio) {
       dpr = Math.min(ratio || 1, 2);
       canvas.width = Math.round(vw * dpr);

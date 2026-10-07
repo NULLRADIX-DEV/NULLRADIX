@@ -222,6 +222,18 @@ export function createSound({ arm = true } = {}) {
   render();
 
   return {
+    /** the scene jump: a whoosh into the origin, a lock-on ping, an impact as it opens */
+    jump(phase) {
+      if (!running) return;
+      if (phase === 'out') {
+        burst(0.45, 0.5, 9000, 260);
+        boom(0.35, 320, 60, 0.45);
+      } else if (phase === 'lock') ping(0.7);
+      else if (phase === 'in') {
+        burst(0.5, 1.2, 11000, 140);
+        boom(0.6, 95, 26, 1.1);
+      }
+    },
     /** called inside the entrance click: that gesture is what lets the audio start */
     enter(withSound) {
       want = withSound;

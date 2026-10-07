@@ -6,7 +6,7 @@ import { labelAt, sceneAt } from '../film/world.js';
 import { qs, qsa } from '../utils/dom.js';
 
 const GLYPHS = '01#/<>+*=_';
-const f4 = (v) => {
+export const f4 = (v) => {
   const n = Math.max(-9999, Math.min(9999, Math.round(v)));
   return (n < 0 ? '-' : '+') + String(Math.abs(n)).padStart(4, '0');
 };

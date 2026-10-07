@@ -15,15 +15,6 @@
   max-width: none;
   will-change: transform;
 }
-/* the travel proxy sits on the film and only shows while a tab flight runs on it */
-.film--proxy {
-  opacity: 0;
-  transition: opacity 0.35s var(--ease-inout);
-}
-.stage.is-flying .film--proxy {
-  opacity: 1;
-  transition: none;
-}
 .swarm {
   position: absolute;
   inset: 0;
@@ -583,14 +574,117 @@ html.is-gated .cursor {
   display: none !important;
 }
 
-/* fast tab flights: copy, cards and anchored marks step aside while the film races; they return on landing */
-main,
-.anchors,
-.leaders,
-.swarm {
-  transition: opacity 0.45s var(--ease);
+/* ============ jump between scenes (tab clicks) ============ */
+.jump {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
 }
-body.is-cruising :is(main, .anchors, .leaders, .swarm) {
+.jump[hidden] {
+  display: none;
+}
+/* black everywhere outside a circle of radius --jr around the centre */
+.jump__iris {
+  position: absolute;
+  inset: 0;
+  background: var(--c-void);
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent calc(var(--jr, 200vmax) - 0.5px), #000 var(--jr, 200vmax));
+  mask: radial-gradient(circle at 50% 50%, transparent calc(var(--jr, 200vmax) - 0.5px), #000 var(--jr, 200vmax));
+}
+/* the lens rim riding on the iris edge */
+.jump__rim {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--jr, 0px) * 2);
+  height: calc(var(--jr, 0px) * 2);
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 1.5px solid var(--c-near);
+  box-shadow:
+    0 0 28px rgba(250, 250, 251, 0.5),
+    inset 0 0 22px rgba(250, 250, 251, 0.35),
+    1.5px 0 0 rgba(255, 60, 60, 0.55),
+    -1.5px 0 0 rgba(60, 220, 255, 0.55);
+}
+.jump__cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--c-near), var(--c-near)) center / 100% 1.5px no-repeat,
+    linear-gradient(var(--c-near), var(--c-near)) center / 1.5px 100% no-repeat;
   opacity: 0;
-  transition-duration: 0.18s;
+  transform: scale(2.4) rotate(45deg);
+  transition: opacity 0.2s var(--ease), transform 0.5s var(--ease);
+}
+.jump__cross::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1.5px solid var(--c-near);
+  border-radius: 50%;
+}
+.jump__line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(46vw, 640px);
+  height: 1px;
+  translate: -50% 0;
+  background: linear-gradient(90deg, transparent, rgba(250, 250, 251, 0.6) 30%, rgba(250, 250, 251, 0.6) 70%, transparent);
+  transform: scaleX(0);
+  transition: transform 0.55s var(--ease);
+}
+.jump__label,
+.jump__coords {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  white-space: pre;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+.jump__label {
+  top: calc(50% + 30px);
+  font-size: var(--fs-200);
+  letter-spacing: 0.34em;
+  margin-right: -0.34em;
+  color: var(--c-near);
+}
+.jump__coords {
+  top: calc(50% + 62px);
+  font-size: var(--fs-100);
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-mid);
+}
+.jump.is-locked .jump__cross {
+  opacity: 1;
+  transform: none;
+}
+.jump.is-locked .jump__line {
+  transform: scaleX(1);
+}
+.jump.is-locked :is(.jump__label, .jump__coords) {
+  opacity: 1;
+}
+.jump.is-opening :is(.jump__cross, .jump__label, .jump__coords, .jump__line) {
+  opacity: 0;
+  transition-duration: 0.35s;
+}
+/* the film rushes into the origin and lands from a slight zoom; the copy waits for the landing */
+html.is-jumping .stage {
+  transform: scale(var(--jz, 1));
+  filter: blur(var(--jb, 0px));
+}
+html.is-jumping main {
+  opacity: var(--jm, 0);
 }
