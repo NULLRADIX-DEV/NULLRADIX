@@ -4,4 +4,3 @@ dist
 *.local
 .vite
 .superpowers/
-public/film/
