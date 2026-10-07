@@ -69,7 +69,7 @@ export const projects = [
     id: "fluidsim",
     name: "Fluid Sim",
     blurb:
-      "A real-time 2D fluid sandbox in pure C++ - up to 10k particles with grid-accelerated collisions, fixed-step physics and interactive mouse forces, software-rendered on raw Win32/GDI with no engine.",
+      "A real-time 2D fluid sandbox in pure C++ - runs smoothly with up to 100k particles, grid-accelerated collisions, fixed-step physics and interactive mouse forces, software-rendered on raw Win32/GDI with no engine.",
     tech: ["C++", "Win32", "GDI"],
     year: 2025,
     links: { repo: "https://github.com/Tr1sma/FluidSimCpp" },
