@@ -166,9 +166,17 @@
 @media (pointer: coarse) {
   .k-fine,
   [data-cut-open],
-  .wordplay kbd,
+  .wordplay,
+  .dossier__keys,
   .hint kbd {
     display: none !important;
+  }
+  /* the desktop note sits at the top: the hero's buttons own the bottom on a phone */
+  .hint {
+    top: clamp(56px, 8vh, 72px);
+    bottom: auto;
+    right: 16px;
+    transform: translateY(-14px);
   }
   .k-touch {
     display: inline;

@@ -57,6 +57,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
       over: OVER,
       // desktops decode on CPU threads: no per-frame GPU copies competing with the compositor
       software: !coarse && (navigator.hardwareConcurrency || 4) >= 6,
+      lean: coarse, // phones: less decoded film in memory at once
       onStatus: (s) => {
         if (player !== p) return; // a replaced player keeps quiet
         onStatus(s, p);
