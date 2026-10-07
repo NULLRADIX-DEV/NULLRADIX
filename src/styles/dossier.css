@@ -77,6 +77,44 @@ body[data-mode='film'] .more:focus-visible {
   }
 }
 
+/* the wordmark listens: a hint above it, and a hidden field that brings up a phone's keyboard */
+.wordplay,
+.wordplay__input {
+  display: none;
+}
+body[data-mode='film'] .wordplay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  white-space: nowrap;
+  color: var(--c-mid);
+}
+.wordplay__caret {
+  width: 0.6em;
+  height: 1px;
+  background: var(--c-near);
+  animation: caret 1.05s steps(1) infinite;
+}
+@keyframes caret {
+  50% { opacity: 0; }
+}
+body[data-mode='film'] .wordplay__input {
+  display: block;
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px; /* no zoom on focus */
+  pointer-events: none;
+}
+
 /* ---- head ---- */
 .dossier__title {
   margin-top: var(--sp-4);

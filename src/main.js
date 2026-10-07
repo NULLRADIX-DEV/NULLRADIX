@@ -19,6 +19,7 @@ import { createWork } from './scenes/work.js';
 import { createSkills } from './scenes/skills.js';
 import { createContact } from './scenes/contact.js';
 import { createSwarmLayer } from './scenes/swarm.js';
+import { createWordplay } from './scenes/wordplay.js';
 import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
@@ -65,7 +66,9 @@ function startFilm(anchors) {
   stage.add(createAbout());
   stage.add(createWork(anchors));
   stage.add(createSkills());
-  stage.add(createSwarmLayer());
+  const swarm = createSwarmLayer();
+  stage.add(swarm.update);
+  stage.add(createWordplay(swarm));
   stage.add(createContact());
   wireUiSound(sound);
   motionToggle('Motion on', () => {
@@ -74,7 +77,7 @@ function startFilm(anchors) {
   });
   stage.start();
   stage.pause(); // no scrolling past the entrance
-  if (import.meta.env.DEV) Object.assign(window, { __nrStage: stage, __nrSound: sound });
+  if (import.meta.env.DEV) Object.assign(window, { __nrStage: stage, __nrSound: sound, __nrSwarm: swarm });
 }
 
 // interface sounds: a tick when the pointer reaches something clickable, a press when it is used
