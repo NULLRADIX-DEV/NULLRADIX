@@ -39,17 +39,42 @@ body[data-index-rising] .hud--bottom::before {
   margin-inline: auto;
 }
 
-/* the cue under the closing contact block */
+/* the cue to the index: one line under the closing contact block; on wide screens it sits in the
+   middle of the bottom HUD bar instead, so the block keeps its room under the wordmark */
+.more {
+  display: none;
+}
 body[data-mode='film'] .more {
-  display: grid;
+  position: absolute;
+  left: 50%;
   top: var(--top, 85vh);
-  bottom: auto;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 4px 10px;
+  white-space: nowrap;
   color: var(--c-mid);
   transition: color var(--dur-fast) var(--ease);
 }
 body[data-mode='film'] .more:hover,
 body[data-mode='film'] .more:focus-visible {
   color: var(--c-near);
+}
+.more__arrow {
+  display: inline-block;
+  animation: more-bob 1.8s var(--ease-inout) infinite;
+}
+@keyframes more-bob {
+  0%, 100% { transform: translateY(-2px); opacity: 0.45; }
+  50% { transform: translateY(3px); opacity: 1; }
+}
+@media (min-width: 1100px) and (min-aspect-ratio: 17/20) {
+  body[data-mode='film'] .more {
+    position: fixed;
+    top: auto;
+    bottom: calc(clamp(14px, 2.2vw, 34px) - 4px);
+  }
 }
 
 /* ---- head ---- */

@@ -1,6 +1,7 @@
 /**
  * Contact: after the implosion the wordmark forms in the film; the channel opens beneath it,
- * with a cue to the index right under it - always above the bottom HUD, whatever the screen height.
+ * with a cue to the index right under it - always above the bottom HUD, whatever the screen height
+ * (wide screens: the cue sits in the HUD bar, so the block keeps its full size under the wordmark).
  * When the index rises over the last frame, the block steps back.
  */
 import { qs } from '../utils/dom.js';
@@ -21,7 +22,9 @@ export function createContact() {
   const email = qs('[data-profile-email]');
   const scramble = createScramble(email);
   const pt = [0, 0, 0, 0];
+  const inHud = matchMedia('(min-width: 1100px) and (min-aspect-ratio: 17/20)');
   let played = false, dims = null;
+  inHud.addEventListener('change', () => (dims = null));
   const remeasure = () => (dims = null);
   addEventListener('resize', remeasure);
   document.fonts?.ready.then(remeasure);
@@ -37,7 +40,7 @@ export function createContact() {
     // measure the resting layout once: the slogan's animated width axis would wrap it while it lands
     if (!dims) {
       slogan.style.fontVariationSettings = REST;
-      dims = { block: block.offsetHeight, more: more.offsetHeight + GAP, hud: hud.getBoundingClientRect().top };
+      dims = { block: block.offsetHeight, more: inHud.matches ? 0 : more.offsetHeight + GAP, hud: hud.getBoundingClientRect().top };
     }
 
     // under the particle wordmark; on short screens the block shrinks to fit above the HUD
