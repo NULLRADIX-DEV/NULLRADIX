@@ -67,6 +67,7 @@
         <a href="#work" data-nav="work">Work</a>
         <a href="#skills" data-nav="skills">Skills</a>
         <a href="#contact" data-nav="contact">Contact</a>
+        <a href="#index" data-nav="index">Index</a>
       </nav>
       <div class="hud__readout" aria-hidden="true">
         <span class="hud__xyz" data-hud-xyz>x +0000 y +0000 z +0000</span>
@@ -169,17 +170,83 @@
               </div>
             </div>
           </div>
-          <footer class="site-footer">
-            <span>NULLRADIX</span>
-            <nav class="footer-legal" aria-label="Rechtliches">
-              <a href="/impressum.html">Impressum</a>
-              <a href="/datenschutz.html">Datenschutz</a>
-            </nav>
-            <span><span data-year>2026</span> - built with care</span>
-          </footer>
+          <a class="scroll-cue more label" href="#index" data-more><span>The short version</span><i aria-hidden="true"></i></a>
+        </div>
+      </section>
+
+      <!-- the credits: everything from the film as one calm, readable page (film mode only) -->
+      <section id="index" class="dossier" data-dossier aria-labelledby="index-h">
+        <div class="dossier__in">
+          <header class="dossier__head">
+            <p class="label">Index <span class="label__sep">/</span> Everything at a glance</p>
+            <h2 id="index-h" class="dossier__title">The short version.</h2>
+            <p class="dossier__who">
+              <span data-dossier-who></span>
+              <span class="dossier__status"><span class="pulse" aria-hidden="true"></span><span data-dossier-status></span></span>
+            </p>
+            <dl class="dossier__facts" data-dossier-facts></dl>
+          </header>
+
+          <section class="dossier__block" aria-labelledby="ix-about">
+            <header class="dossier__bar">
+              <h3 id="ix-about" class="label">01 <span class="label__sep">/</span> How I work</h3>
+              <a class="dossier__film label" href="#about">In the film <span aria-hidden="true">↑</span></a>
+            </header>
+            <div class="dossier__about">
+              <p class="dossier__lead" data-dossier-lead></p>
+              <dl class="dossier__tenets" data-dossier-tenets></dl>
+            </div>
+            <ul class="dossier__disciplines" data-dossier-disciplines></ul>
+          </section>
+
+          <section class="dossier__block" aria-labelledby="ix-work">
+            <header class="dossier__bar">
+              <h3 id="ix-work" class="label">02 <span class="label__sep">/</span> Selected work</h3>
+              <a class="dossier__film label" href="#work">In the film <span aria-hidden="true">↑</span></a>
+            </header>
+            <ol class="dossier__work" data-dossier-work></ol>
+          </section>
+
+          <section class="dossier__block" aria-labelledby="ix-skills">
+            <header class="dossier__bar">
+              <h3 id="ix-skills" class="label">03 <span class="label__sep">/</span> Skills</h3>
+              <a class="dossier__film label" href="#skills">In the film <span aria-hidden="true">↑</span></a>
+            </header>
+            <div class="dossier__skills" data-dossier-skills></div>
+          </section>
+
+          <section class="dossier__block" aria-labelledby="ix-track">
+            <header class="dossier__bar">
+              <h3 id="ix-track" class="label">04 <span class="label__sep">/</span> Track record</h3>
+              <a class="dossier__film label" href="#skills">In the film <span aria-hidden="true">↑</span></a>
+            </header>
+            <ol class="dossier__track" data-dossier-track></ol>
+          </section>
+
+          <section class="dossier__block dossier__contact" aria-labelledby="ix-contact">
+            <header class="dossier__bar">
+              <h3 id="ix-contact" class="label">05 <span class="label__sep">/</span> Contact</h3>
+              <a class="dossier__film label" href="#contact">In the film <span aria-hidden="true">↑</span></a>
+            </header>
+            <p class="dossier__ask">Have a system worth building?</p>
+            <a class="contact__email dossier__email" href="mailto:tristan@nullradix.de" data-text="tristan@nullradix.de">tristan@nullradix.de</a>
+            <div class="dossier__reach">
+              <button class="btn" type="button" data-copy-email>Copy email</button>
+              <ul class="dossier__socials" data-dossier-socials></ul>
+            </div>
+          </section>
         </div>
       </section>
     </main>
+
+    <footer class="site-footer">
+      <span>NULLRADIX</span>
+      <nav class="footer-legal" aria-label="Rechtliches">
+        <a href="/impressum.html">Impressum</a>
+        <a href="/datenschutz.html">Datenschutz</a>
+      </nav>
+      <span><span data-year>2026</span> - built with care</span>
+    </footer>
 
     <div class="panel" data-panel data-lenis-prevent hidden role="dialog" aria-modal="true" aria-labelledby="panel-title">
       <div class="panel__backdrop" data-panel-close></div>

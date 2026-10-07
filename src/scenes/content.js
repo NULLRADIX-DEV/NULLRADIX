@@ -4,11 +4,11 @@
  */
 import { profile, projects, about, disciplines, skills, experience, socials, axes } from '../data/content.js';
 import { NODES, STOPS, SLAMS, MILESTONES } from '../film/world.js';
-import { qs, el } from '../utils/dom.js';
+import { qs, qsa, el } from '../utils/dom.js';
 
-const STATUS = { live: 'Live', wip: 'In progress', archived: 'Archived' };
-const pad = (n) => String(n).padStart(2, '0');
-const coordText = (c) => `x ${c.x < 0 ? '-' : '+'}${String(Math.abs(c.x)).padStart(3, '0')}  y ${c.y < 0 ? '-' : '+'}${String(Math.abs(c.y)).padStart(3, '0')}`;
+export const STATUS = { live: 'Live', wip: 'In progress', archived: 'Archived' };
+export const pad = (n) => String(n).padStart(2, '0');
+export const coordText = (c) => `x ${c.x < 0 ? '-' : '+'}${String(Math.abs(c.x)).padStart(3, '0')}  y ${c.y < 0 ? '-' : '+'}${String(Math.abs(c.y)).padStart(3, '0')}`;
 
 /** projects in film tour order (the plane's flight path), each with its content index */
 export const tour = NODES.map((n) => {
@@ -129,16 +129,16 @@ export function renderContent(panel) {
   };
 }
 
-/** copy-to-clipboard for the contact email */
+/** copy-to-clipboard for the contact email (the film's contact block and the index) */
 export function wireCopy() {
-  const btn = qs('[data-copy-email]');
-  btn?.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(profile.email);
-      btn.textContent = 'Copied';
-    } catch {
-      btn.textContent = profile.email;
-    }
-    setTimeout(() => (btn.textContent = 'Copy email'), 1800);
-  });
+  for (const btn of qsa('[data-copy-email]'))
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(profile.email);
+        btn.textContent = 'Copied';
+      } catch {
+        btn.textContent = profile.email;
+      }
+      setTimeout(() => (btn.textContent = 'Copy email'), 1800);
+    });
 }

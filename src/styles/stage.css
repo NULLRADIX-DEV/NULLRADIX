@@ -416,6 +416,24 @@ body[data-mode='film'].has-cursor .panel button {
     display: none;
   }
 }
+/* small phones: brand and five tabs still fit on one line */
+@media (max-width: 420px) {
+  .hud--top {
+    gap: 10px;
+  }
+  .hud__brand {
+    letter-spacing: 0.12em;
+  }
+  .hud__nav {
+    gap: 9px;
+    letter-spacing: 0.04em;
+  }
+}
+@media (max-width: 350px) {
+  .hud--top {
+    font-size: 0.62rem;
+  }
+}
 
 /* ============ entrance ============ */
 html.is-gated {

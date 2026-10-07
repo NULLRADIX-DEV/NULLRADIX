@@ -8,6 +8,7 @@ import '@fontsource-variable/space-grotesk';
 import { env, setMotionOverride } from './modules/env.js';
 import { createPanel } from './modules/panel.js';
 import { renderContent, wireCopy, tour } from './scenes/content.js';
+import { renderDossier } from './scenes/dossier.js';
 import { createStage } from './stage/stage.js';
 import { createHud } from './stage/hud.js';
 import { createFx } from './stage/fx.js';
@@ -29,6 +30,7 @@ function boot() {
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   const panel = createPanel({ onOpen: () => stage?.pause(), onClose: () => stage?.resume(), list: tour.map((x) => x.project) });
   const anchors = renderContent(panel);
+  renderDossier(panel);
   wireCopy();
   if (env.mode === 'film') startFilm(anchors);
   else startStatic(false);

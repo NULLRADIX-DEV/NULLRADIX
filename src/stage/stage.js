@@ -14,11 +14,13 @@ import { createJump } from './jump.js';
 import { f4 } from './hud.js';
 
 const INTRO_KEY = 'nr-intro-seen';
+const INDEX = { id: 'index', label: 'Index' }; // the page after the film: a jump target, not a scene
 const OVER = 1.04; // cover overscan, room for parallax
 
 export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = () => {}, hold = Promise.resolve() } = {}) {
   const canvas = document.querySelector('[data-film]');
   const sections = [...document.querySelectorAll('[data-scene]')];
+  const dossier = document.querySelector('[data-dossier]'); // the index after the film, in normal flow
   const map = makeScrollMap(W.SCROLL_KEYS);
   const T0 = W.SCROLL_KEYS[0][0];
   const coarse = matchMedia('(pointer: coarse)').matches;
@@ -36,6 +38,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   let fit = coverFit(vw, vh, world.W, world.H, OVER);
   let player = null;
   let t = T0, intro = null, raf = 0, last = 0, failed = false, selfFocus = false;
+  let indexTop = Infinity; // document y where the index begins
   const pointer = { x: vw / 2, y: vh / 2, nx: 0, ny: 0, tx: 0, ty: 0, inside: false };
 
   const scrollY = () => (lenis ? lenis.scroll : window.scrollY);
@@ -80,7 +83,13 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
       const extra = i === sections.length - 1 ? unit : 0;
       s.style.height = `${Math.round((v1 - v0) * unit + extra)}px`;
     });
+    if (dossier) indexTop = dossier.getBoundingClientRect().top + window.scrollY;
     lenis?.resize(); // its scroll limit must know the new height before anything scrolls
+  }
+
+  function scrollToY(y) {
+    if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
+    else window.scrollTo({ top: y, behavior: 'instant' });
   }
 
   function scrollToT(target, { immediate = false } = {}) {
@@ -97,17 +106,19 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   const jump = createJump({ onPhase: onJump });
   const nextFrame = () => new Promise(requestAnimationFrame);
   let queued = null;
-  async function travel(target, sc) {
+  // y: land on a document position instead of the film time (the index below the film)
+  async function travel(target, sc, y = null) {
     if (intro) intro = null;
-    if (jump.busy) return void (queued = [target, sc]); // a click mid-jump runs right after it
-    if (Math.abs(target - t) < 0.02) return;
+    if (jump.busy) return void (queued = [target, sc, y]); // a click mid-jump runs right after it
+    if (y === null ? Math.abs(target - t) < 0.02 && scrollY() < indexTop - vh * 0.5 : Math.abs(scrollY() - y) < 4) return;
     lenis?.stop();
     const eye = world.cam(target).eye;
     await jump.run({
       text: (sc ? sc.label : W.SCENES[0].label).toUpperCase(),
       xyz: `x ${f4(eye[0] / 10)}  y ${f4(-eye[1] / 10)}  z ${f4(eye[2] / 10)}`,
       land: () => {
-        scrollToT(target, { immediate: true });
+        if (y === null) scrollToT(target, { immediate: true });
+        else scrollToY(y);
         t = target;
       },
       ready: async () => {
@@ -116,9 +127,9 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     });
     lenis?.start();
     if (queued) {
-      const [nt, nsc] = queued;
+      const [nt, nsc, ny] = queued;
       queued = null;
-      travel(nt, nsc);
+      travel(nt, nsc, ny);
     }
   }
 
@@ -127,10 +138,11 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     const a = e.target.closest('a[href^="#"]');
     if (!a || e.defaultPrevented) return;
     const id = a.getAttribute('href').slice(1);
-    const sc = W.SCENES.find((s) => s.id === id);
+    const sc = id === 'index' ? INDEX : W.SCENES.find((s) => s.id === id);
     if (!sc && id !== 'main') return;
     e.preventDefault();
-    travel(sc ? sc.anchorT : T0, sc);
+    if (sc === INDEX) travel(W.DUR, sc, indexTop);
+    else travel(sc ? sc.anchorT : T0, sc);
     history.replaceState(null, '', `#${id}`);
     // move keyboard focus with the camera, so Tab continues inside that scene
     const heading = document.querySelector(`#${sc ? sc.id : 'top'} :is(h1, h2)`);
@@ -199,7 +211,12 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     }
     const hash = location.hash.slice(1);
     const sc = W.SCENES.find((s) => s.id === hash);
-    if (sc && sc.id !== 'top') {
+    if (hash === 'index') {
+      const land = () => scrollToY(indexTop);
+      land();
+      if (document.readyState !== 'complete') addEventListener('load', () => requestAnimationFrame(land), { once: true, signal: listen.signal });
+      t = W.DUR;
+    } else if (sc && sc.id !== 'top') {
       // the browser jumps to the #fragment itself once the page has loaded; land on the anchor after that
       const land = () => scrollToT(sc.anchorT, { immediate: true });
       land();
@@ -218,7 +235,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   const film = { x: 0, y: 0 };
   const ctx = {
     t, shownT: t, cam: null, world, fit, vw, vh, fmt, pointer, impact: null,
-    progress: 0, buffer: 0, intro: false, playing: false,
+    progress: 0, buffer: 0, intro: false, playing: false, cover: 0, buried: false,
     proj(p, out = [0, 0, 0, 0]) {
       const r = world.proj(ctx.cam, p);
       if (r[2] < 40) return null;
@@ -276,6 +293,10 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     ctx.intro = !!intro;
     ctx.film = film;
     ctx.dt = dt;
+    // how far the index has risen over the film: 0 below the viewport, 1 once its top reaches the top
+    const rise = (scrollY() + vh - indexTop) / vh;
+    ctx.cover = Math.max(0, Math.min(1, rise));
+    ctx.buried = rise > 1.5; // the film is fully behind the index's opaque part
     for (const fn of subs) fn(ctx);
   }
 

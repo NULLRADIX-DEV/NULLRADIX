@@ -58,7 +58,7 @@ export function createSwarmLayer() {
   return (ctx) => {
     const t = ctx.shownT;
     const a = sstep(WM_HANDOFF[0], WM_HANDOFF[1], t);
-    if (a <= 0.001 || !fontReady) return clear();
+    if (a <= 0.001 || !fontReady || ctx.buried) return clear(); // buried: under the index, nothing to see
     const { world, cam, fit, film, impact } = ctx;
     if (sampledFor !== ctx.fmt) {
       sample(world);

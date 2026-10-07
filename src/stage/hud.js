@@ -1,6 +1,7 @@
 /**
  * The instrument HUD: live camera coordinates of the frame on screen, the scene label
  * (decoded with a scramble on change), lens, film clock, scroll progress and buffer.
+ * Over the index the label reads INDEX and the film's instruments fade.
  */
 import { labelAt, sceneAt } from '../film/world.js';
 import { qs, qsa } from '../utils/dom.js';
@@ -30,17 +31,19 @@ export function createHud() {
   const loaded = qs('[data-hud-loaded]');
   const buffer = qs('[data-hud-buffer]');
   const nav = qsa('[data-nav]');
+  const clock = qs('.hud__group--end'); // the film's clock means nothing on the index
   const set = (el, v) => {
     if (el.textContent !== v) el.textContent = v;
   };
-  let cur = '', since = 0, scene = '', boot = 0;
+  let cur = '', since = 0, scene = '', boot = 0, dim = '';
 
   return (ctx) => {
     const now = performance.now();
     boot = Math.min(1, boot + ctx.dt * 1.4);
     const e = ctx.cam.eye;
     set(xyz, scramble(`x ${f4(e[0] / 10)}  y ${f4(-e[1] / 10)}  z ${f4(e[2] / 10)}`, boot));
-    const L = labelAt(ctx.t).toUpperCase();
+    const onIndex = ctx.cover > 0.5;
+    const L = onIndex ? 'INDEX' : labelAt(ctx.t).toUpperCase();
     if (L !== cur) {
       cur = L;
       since = now;
@@ -52,7 +55,17 @@ export function createHud() {
     progress.style.transform = `scaleX(${Math.max(0, ctx.progress).toFixed(4)})`;
     loaded.style.transform = `scaleX(${ctx.buffer.toFixed(3)})`;
     set(buffer, ctx.buffer < 0.999 ? `buf ${Math.round(ctx.buffer * 100)}%` : '');
-    const id = sceneAt(ctx.t).id;
+    const fade = (1 - ctx.cover).toFixed(2);
+    if (fade !== dim) {
+      dim = fade;
+      clock.style.opacity = fade;
+      lens.style.opacity = fade;
+    }
+    // floors under the bars: the bottom one as soon as reading text comes up, the top one once it can reach it
+    const b = document.body, rising = ctx.cover > 0.3, inside = ctx.cover > 0.98;
+    if (rising !== b.hasAttribute('data-index-rising')) b.toggleAttribute('data-index-rising', rising);
+    if (inside !== b.hasAttribute('data-on-index')) b.toggleAttribute('data-on-index', inside);
+    const id = onIndex ? 'index' : sceneAt(ctx.t).id;
     if (id !== scene) {
       scene = id;
       for (const a of nav) a.toggleAttribute('aria-current', a.dataset.nav === id);

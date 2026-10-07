@@ -5,6 +5,7 @@
  *  - a kick on the bore's beat grid - scroll faster, the beat runs faster
  *  - impacts, pings, a riser and the drop whenever the playhead crosses a cue (either way); the four
  *    bore slams duck the bed and ring a step higher each
+ *  - under the index (the page after the film) everything sounds muffled, as if from below
  * On by default. Browsers only let audio start after a real gesture (click, key, tap - not the
  * wheel), so it is armed and starts with the first one. Switching it off is remembered.
  */
@@ -27,7 +28,7 @@ export function createSound({ arm = true } = {}) {
     /* storage blocked: default on */
   }
   let ac = null, running = false, lastT = null;
-  let master, bed, drone, droneFilter, air, airFilter, wet, noise, sat;
+  let master, bed, drone, droneFilter, air, airFilter, wet, noise, sat, under, page, lastCover = -1;
 
   function impulse(seconds, decay) {
     const len = Math.round(ac.sampleRate * seconds), buf = ac.createBuffer(2, len, ac.sampleRate);
@@ -57,7 +58,13 @@ export function createSound({ arm = true } = {}) {
     for (let i = 0; i < sat.length; i++) sat[i] = Math.tanh(3 * (i / 511.5 - 1));
     master = ac.createGain();
     master.gain.value = 0;
-    master.connect(comp);
+    // the index rising over the film: everything sounds from under the page
+    under = ac.createBiquadFilter();
+    under.type = 'lowpass';
+    under.frequency.value = 18000;
+    under.Q.value = 0.5;
+    page = ac.createGain();
+    master.connect(under).connect(page).connect(comp);
     const verb = ac.createConvolver();
     verb.buffer = impulse(3.2, 2.6);
     wet = ac.createGain();
@@ -326,6 +333,12 @@ export function createSound({ arm = true } = {}) {
         for (const b of BEATS) if (b > lo && b <= hi && !CUES.some((c) => Math.abs(c.t - b) < 0.05)) kick(0.7);
       }
       lastT = t;
+      const cover = Math.round(ctx.cover * 100) / 100;
+      if (cover !== lastCover) {
+        lastCover = cover;
+        under.frequency.setTargetAtTime(18000 * Math.pow(700 / 18000, cover), now, 0.15);
+        page.gain.setTargetAtTime(1 - 0.5 * cover, now, 0.15);
+      }
     },
   };
 }

@@ -366,10 +366,20 @@ body[data-mode='film'] .project__name-in {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--c-far);
+  /* the page's last line, in flow after everything; clear of the fixed bottom HUD */
+  position: relative;
+  z-index: 4;
+  padding: var(--sp-8) max(var(--gutter), calc((100% - var(--container)) / 2))
+    calc(var(--sp-8) + 56px + clamp(14px, 2.2vw, 34px));
+  background: var(--c-void);
+  border-top: var(--hairline);
 }
 .footer-legal {
   display: flex;
   gap: var(--sp-6);
+}
+.footer-legal a {
+  color: var(--c-mid);
 }
 .footer-legal a:hover,
 .footer-legal a:focus-visible {
@@ -578,30 +588,6 @@ body[data-mode='film'] .contact > * {
 @media (min-aspect-ratio: 17/20) {
   body[data-mode='film'] .contact__slogan {
     white-space: nowrap;
-  }
-}
-body[data-mode='film'] .scene--contact .site-footer {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  top: var(--top, 85vh);
-  justify-content: center;
-  column-gap: var(--sp-8);
-}
-/* wide screens: the footer sits in the middle of the bottom HUD bar */
-@media (min-width: 1400px) and (min-aspect-ratio: 17/20) {
-  body[data-mode='film'] .scene--contact .site-footer {
-    position: fixed;
-    top: auto;
-    left: 50%;
-    right: auto;
-    bottom: clamp(20px, calc(2.2vw + 6px), 40px);
-    translate: -50% 0;
-    z-index: 51;
-    white-space: nowrap;
-  }
-  body[data-mode='film'] .scene--contact .site-footer > span:first-child {
-    display: none;
   }
 }
 body[data-mode='film'] .contact__slogan {

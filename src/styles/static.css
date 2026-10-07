@@ -104,6 +104,3 @@ body[data-mode='static'] .contact {
   display: grid;
   justify-items: center;
 }
-body[data-mode='static'] .scene--contact .site-footer {
-  margin-top: var(--sp-24);
-}
