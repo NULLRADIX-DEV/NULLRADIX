@@ -3,16 +3,18 @@
  *  - a detuned drone whose filter opens with scroll speed and changes colour per scene
  *  - air (filtered noise) that rises when the film moves fast
  *  - a kick on the bore's beat grid - scroll faster, the beat runs faster
- *  - impacts, pings, a riser and the drop whenever the playhead crosses a cue (either way)
+ *  - impacts, pings, a riser and the drop whenever the playhead crosses a cue (either way); the four
+ *    bore slams duck the bed and ring a step higher each
  * On by default. Browsers only let audio start after a real gesture (click, key, tap - not the
  * wheel), so it is armed and starts with the first one. Switching it off is remembered.
  */
-import { CUES, sceneAt } from '../film/world.js';
+import { CUES, SLAMS, sceneAt } from '../film/world.js';
 import { qs } from '../utils/dom.js';
 
 const BEATS = [];
 for (let b = 6.5; b < 16.7; b += 0.5) BEATS.push(+b.toFixed(2));
 const TONE = { top: 420, about: 950, work: 620, skills: 760, contact: 340 };
+const SLAM_NOTES = [220, 261.63, 293.66, 329.63]; // Frontend, Backend, Mobile, Infrastructure
 
 export function createSound({ arm = true } = {}) {
   const btn = qs('[data-sound]');
@@ -25,7 +27,7 @@ export function createSound({ arm = true } = {}) {
     /* storage blocked: default on */
   }
   let ac = null, running = false, lastT = null;
-  let master, drone, droneFilter, air, airFilter, wet, noise;
+  let master, bed, drone, droneFilter, air, airFilter, wet, noise, sat;
 
   function impulse(seconds, decay) {
     const len = Math.round(ac.sampleRate * seconds), buf = ac.createBuffer(2, len, ac.sampleRate);
@@ -41,7 +43,18 @@ export function createSound({ arm = true } = {}) {
     const comp = ac.createDynamicsCompressor();
     comp.threshold.value = -18;
     comp.ratio.value = 4;
-    comp.connect(ac.destination);
+    // soft clip after the compressor: linear up to 0.7, then bends into 1 - loud hits never crackle
+    const clip = ac.createWaveShaper(), cc = new Float32Array(2049);
+    for (let i = 0; i < cc.length; i++) {
+      const x = (i / 1024 - 1) * 1.5, m = Math.abs(x);
+      cc[i] = Math.sign(x) * (m < 0.7 ? m : 0.7 + 0.3 * Math.tanh((m - 0.7) / 0.3));
+    }
+    clip.curve = cc;
+    const pre = ac.createGain(); // the curve spans +-1.5: scale into the shaper's +-1 input range
+    pre.gain.value = 1 / 1.5;
+    comp.connect(pre).connect(clip).connect(ac.destination);
+    sat = new Float32Array(1024); // tanh drive: gives low hits harmonics small speakers can play
+    for (let i = 0; i < sat.length; i++) sat[i] = Math.tanh(3 * (i / 511.5 - 1));
     master = ac.createGain();
     master.gain.value = 0;
     master.connect(comp);
@@ -50,6 +63,8 @@ export function createSound({ arm = true } = {}) {
     wet = ac.createGain();
     wet.gain.value = 0.3;
     wet.connect(verb).connect(master);
+    bed = ac.createGain(); // drone, sub and air: the hits duck it
+    bed.connect(master);
 
     // drone: A1 / E2 / A2, slightly detuned saws through a resonant low-pass
     droneFilter = ac.createBiquadFilter();
@@ -58,7 +73,7 @@ export function createSound({ arm = true } = {}) {
     droneFilter.Q.value = 3.5;
     drone = ac.createGain();
     drone.gain.value = 0.12;
-    droneFilter.connect(drone).connect(master);
+    droneFilter.connect(drone).connect(bed);
     drone.connect(wet);
     for (const [f, d] of [[55, -7], [55, 6], [82.41, 3], [110, -4]]) {
       const o = ac.createOscillator();
@@ -71,7 +86,7 @@ export function createSound({ arm = true } = {}) {
     const sub = ac.createOscillator(), subG = ac.createGain();
     sub.frequency.value = 55;
     subG.gain.value = 0.16;
-    sub.connect(subG).connect(master);
+    sub.connect(subG).connect(bed);
     sub.start();
 
     // air: looped noise through a moving band-pass
@@ -87,7 +102,7 @@ export function createSound({ arm = true } = {}) {
     airFilter.Q.value = 0.8;
     air = ac.createGain();
     air.gain.value = 0;
-    src.connect(airFilter).connect(air).connect(master);
+    src.connect(airFilter).connect(air).connect(bed);
     air.connect(wet);
     src.start();
   }
@@ -159,10 +174,60 @@ export function createSound({ arm = true } = {}) {
     s.start(t);
     s.stop(t + 1.6);
   }
+  function duck(depth, hold) {
+    const t = ac.currentTime, g = bed.gain;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(depth, t + 0.012);
+    g.setTargetAtTime(1, t + hold, 0.18);
+  }
+  function snap(amp) {
+    const t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noise;
+    f.type = 'highpass';
+    f.frequency.value = 1800;
+    env(g, t, 0.001, amp, 0.07);
+    s.connect(f).connect(g).connect(master);
+    s.start(t, Math.random());
+    s.stop(t + 0.1);
+  }
+  function thump(amp) {
+    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(), sh = ac.createWaveShaper(), out = ac.createGain();
+    o.frequency.setValueAtTime(240, t);
+    o.frequency.exponentialRampToValueAtTime(52, t + 0.16);
+    env(g, t, 0.002, 1, 0.3);
+    sh.curve = sat;
+    out.gain.value = amp;
+    o.connect(g).connect(sh).connect(out).connect(master);
+    o.start(t);
+    o.stop(t + 0.35);
+  }
+  // struck metal: inharmonic partials, the high ones die first
+  function clang(amp, f0) {
+    const t = ac.currentTime;
+    for (const [r, k, d] of [[1, 1, 0.9], [2, 0.5, 0.6], [2.76, 0.45, 0.5], [4.07, 0.25, 0.35], [5.4, 0.18, 0.25]]) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.value = f0 * r;
+      env(g, t, 0.002, amp * k, d);
+      o.connect(g);
+      g.connect(master);
+      g.connect(wet);
+      o.start(t);
+      o.stop(t + d + 0.05);
+    }
+  }
   const HIT = {
     shock: (a) => { burst(0.5 * a, 1.4, 9000, 200); boom(0.6 * a); },
     pass: (a) => burst(0.35 * a, 0.8, 3000, 400),
-    slam: (a) => { kick(1.2 * a); burst(0.45 * a, 0.5, 6000, 300); boom(0.4 * a, 70, 35, 0.6); },
+    slam: (a, c) => {
+      duck(0.2, 0.14);
+      snap(0.8 * a);
+      thump(0.7 * a);
+      kick(1.3 * a);
+      clang(0.16 * a, SLAM_NOTES[SLAMS.indexOf(c.t)] ?? 260);
+      burst(0.6 * a, 0.6, 7000, 300);
+      boom(0.5 * a, 70, 35, 0.6);
+    },
     burst: (a) => { burst(0.8 * a, 2.2, 12000, 120); boom(0.9 * a, 100, 24, 2); },
     ping: (a) => ping(a),
     rise: () => rise(),
@@ -257,7 +322,7 @@ export function createSound({ arm = true } = {}) {
       // crossings: small steps only - a nav jump across the film should not fire everything at once
       if (lastT !== null && t !== lastT && Math.abs(t - lastT) < 1.5) {
         const lo = Math.min(t, lastT), hi = Math.max(t, lastT);
-        for (const c of CUES) if (c.t > lo && c.t <= hi) HIT[c.kind]?.(c.amp);
+        for (const c of CUES) if (c.t > lo && c.t <= hi) HIT[c.kind]?.(c.amp, c);
         for (const b of BEATS) if (b > lo && b <= hi && !CUES.some((c) => Math.abs(c.t - b) < 0.05)) kick(0.7);
       }
       lastT = t;

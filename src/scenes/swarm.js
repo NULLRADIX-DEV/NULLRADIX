@@ -12,7 +12,7 @@ const N = PLANE_N * PLANE_N; // the film's wordmark uses exactly this many parti
 const FONT = '"Roboto Flex Variable"';
 
 export function createSwarmLayer() {
-  const points = createPoints(qs('[data-swarm]'));
+  const points = createPoints(qs('[data-swarm]'), { crisp: 0.8 }); // sharp dots at device resolution
 
   const wx = new Float32Array(N), wy = new Float32Array(N), phase = new Float32Array(N);
   const hx = new Float32Array(N), hy = new Float32Array(N), data = new Float32Array(N * 3);
@@ -82,13 +82,13 @@ export function createSwarmLayer() {
     const radius = Math.max(70, Math.min(150, ctx.vw * 0.075));
     stepSwarm(sim, hx, hy, Math.min(ctx.dt, 1 / 30), { x: ctx.pointer.x, y: ctx.pointer.y, radius, on: ctx.pointer.inside && a > 0.5 });
 
-    const base = 0.17 * a;
+    const base = 0.45 * a;
     for (let i = 0, j = 0; i < N; i++, j += 3) {
       const speed = Math.abs(sim.vx[i]) + Math.abs(sim.vy[i]);
       data[j] = hx[i] + sim.ox[i] + Math.sin(t * 1.7 + phase[i]) * 0.6;
       data[j + 1] = hy[i] + sim.oy[i] + Math.cos(t * 1.3 + phase[i]) * 0.6;
       data[j + 2] = base * (1 + 0.15 * Math.sin(t * 3 + phase[i])) + Math.min(0.6, speed * 0.0025) * a;
     }
-    points.draw(data, N, Math.max(3, 4.2 * k));
+    points.draw(data, N);
   };
 }
