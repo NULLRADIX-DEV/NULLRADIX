@@ -1,7 +1,8 @@
 /**
  * Additive point renderer for the live particle layers (hero sphere, closing wordmark).
- * WebGL2 with soft round points that add up like light, as the film's particles do; a plain 2D
- * canvas fallback draws small squares.
+ * WebGL2 points that add up like light. `soft` points are wide gaussian blobs that match the film's
+ * compressed particles; `crisp` points are anti-aliased discs at device resolution (radius in CSS px).
+ * A plain 2D canvas fallback draws small squares.
  */
 const VERT = `#version 300 es
 in vec3 a;
@@ -14,19 +15,24 @@ void main() {
   vB = a.z;
 }`;
 const FRAG = `#version 300 es
-precision mediump float;
+precision highp float;
 in float vB;
+uniform float uSize;   // sprite size in device px
+uniform float uRadius; // crisp disc radius in device px, 0 = soft gaussian
 out vec4 o;
 void main() {
   vec2 c = gl_PointCoord - 0.5;
-  float k = exp(-dot(c, c) * 9.0) * vB;
+  float k = uRadius > 0.0
+    ? clamp(uRadius - length(c) * uSize + 0.5, 0.0, 1.0)
+    : exp(-dot(c, c) * 9.0);
+  k *= vB;
   o = vec4(vec3(0.98, 0.98, 0.985) * k, k);
 }`;
 
-export function createPoints(canvas) {
+export function createPoints(canvas, { crisp = 0 } = {}) {
   const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
   const g2 = gl ? null : canvas.getContext('2d');
-  let uView, uSize;
+  let uView, uSize, uRadius;
   if (gl) {
     const sh = (type, src) => {
       const s = gl.createShader(type);
@@ -45,6 +51,7 @@ export function createPoints(canvas) {
     gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
     uView = gl.getUniformLocation(prog, 'uView');
     uSize = gl.getUniformLocation(prog, 'uSize');
+    uRadius = gl.getUniformLocation(prog, 'uRadius');
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
   }
@@ -63,7 +70,7 @@ export function createPoints(canvas) {
       canvas.width = Math.round(cw * dpr);
       canvas.height = Math.round(ch * dpr);
     },
-    /** data: n triples (x, y in CSS px, brightness); size: point size in CSS px */
+    /** data: n triples (x, y in CSS px, brightness); size: soft point size in CSS px (crisp points size themselves) */
     draw(data, n, size) {
       shown = true;
       if (gl) {
@@ -72,7 +79,9 @@ export function createPoints(canvas) {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
         gl.uniform2f(uView, cw, ch);
-        gl.uniform1f(uSize, size * dpr);
+        const r = crisp * dpr;
+        gl.uniform1f(uRadius, r);
+        gl.uniform1f(uSize, r > 0 ? Math.ceil(2 * r + 2) : size * dpr);
         gl.drawArrays(gl.POINTS, 0, n);
       } else {
         g2.setTransform(dpr, 0, 0, dpr, 0, 0);
