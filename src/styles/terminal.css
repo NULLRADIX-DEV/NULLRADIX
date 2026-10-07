@@ -170,3 +170,19 @@ body[data-mode='film'].has-cursor .term button {
 body[data-mode='static'] .hud__term {
   display: none;
 }
+
+/* ================= the director's cut: the machinery drawn over a dimmed film ================= */
+.cut {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 46;
+  pointer-events: none;
+}
+.cut[hidden] {
+  display: none;
+}
+html.is-cut .film {
+  filter: grayscale(1) brightness(0.55);
+}

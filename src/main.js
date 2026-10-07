@@ -21,6 +21,7 @@ import { createContact } from './scenes/contact.js';
 import { createSwarmLayer } from './scenes/swarm.js';
 import { createWordplay } from './scenes/wordplay.js';
 import { createTerminal } from './modules/terminal.js';
+import { createCut } from './stage/cut.js';
 import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
@@ -72,7 +73,9 @@ function startFilm(anchors, panel) {
   const wordplay = createWordplay(swarm);
   stage.add(wordplay.update);
   stage.add(createContact());
-  createTerminal({ stage, panel, wordplay, swarm, cut: () => false });
+  const cut = createCut({ stage, swarm });
+  stage.add(cut.update); // last: it reads where everything ended up this frame
+  createTerminal({ stage, panel, wordplay, swarm, cut: cut.toggle });
   wireUiSound(sound);
   motionToggle('Motion on', () => {
     setMotionOverride('0');
