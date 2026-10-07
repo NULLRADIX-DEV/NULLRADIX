@@ -80,11 +80,16 @@
     <div class="hud hud--bottom" data-hud-bottom>
       <div class="hud__group">
         <button class="hud__btn" type="button" data-sound aria-pressed="false">
-          <span class="hud__eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span class="hud__eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
           <span data-sound-label>Sound off</span>
         </button>
         <button class="hud__btn" type="button" data-motion hidden></button>
-        <button class="hud__btn hud__term" type="button" data-term-open aria-label="Terminal" title="Terminal (~)">&gt;_</button>
+        <button class="hud__btn hud__key" type="button" data-term-open title="Terminal - press ^ (or ~), then type help">
+          <kbd><span class="k-fine">^</span><span class="k-touch">&gt;_</span></kbd><span class="hud__key-t">Terminal</span>
+        </button>
+        <button class="hud__btn hud__key" type="button" data-cut-open title="Director's cut - press D">
+          <kbd>D</kbd><span class="hud__key-t">Director's cut</span>
+        </button>
         <span class="hud__lens" data-hud-lens aria-hidden="true"></span>
       </div>
       <div class="hud__group hud__group--end">
@@ -96,6 +101,11 @@
           <span class="scrub__tip" data-scrub-tip aria-hidden="true"><span class="scrub__thumb" data-scrub-thumb></span><span class="scrub__label" data-scrub-label></span></span>
         </div>
       </div>
+    </div>
+
+    <div class="hint" data-hint hidden role="status" aria-live="polite">
+      <button class="hint__go" type="button" data-hint-go><kbd data-hint-key>^</kbd><span data-hint-text></span></button>
+      <button class="hint__x" type="button" data-hint-close aria-label="Dismiss">&times;</button>
     </div>
 
     <input class="wordplay__input" data-wordplay-input type="text" maxlength="14" autocomplete="off" autocapitalize="off" spellcheck="false" tabindex="-1" aria-label="Type a word for the particles" />
@@ -179,7 +189,7 @@
               </div>
             </div>
           </div>
-          <p class="wordplay label" data-wordplay aria-hidden="true"><span data-wordplay-text>Type anything</span><i class="wordplay__caret"></i></p>
+          <p class="wordplay" data-wordplay aria-hidden="true"><kbd>A</kbd><span data-wordplay-text>Type anything</span><i class="wordplay__caret"></i></p>
           <a class="more label" href="#index" data-more>The short version <span class="more__arrow" aria-hidden="true">↓</span></a>
         </div>
       </section>
@@ -195,6 +205,12 @@
               <span class="dossier__status"><span class="pulse" aria-hidden="true"></span><span data-dossier-status></span></span>
             </p>
             <dl class="dossier__facts" data-dossier-facts></dl>
+            <p class="dossier__keys">
+              <span class="label">Hidden in the film</span>
+              <span><kbd>^</kbd> a terminal - type <code>help</code></span>
+              <span><kbd>D</kbd> the director's cut</span>
+              <span><kbd>A</kbd> type anything at the end</span>
+            </p>
           </header>
 
           <section class="dossier__block" aria-labelledby="ix-about">
@@ -268,7 +284,7 @@
         <div class="term__out" data-term-out aria-live="polite"></div>
         <form class="term__line" data-term-form autocomplete="off">
           <label class="term__p" for="term-in">visitor@nullradix:~$</label>
-          <input id="term-in" class="term__in" data-term-in type="text" autocomplete="off" autocapitalize="off" spellcheck="false" />
+          <input id="term-in" class="term__in" data-term-in type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type help, then enter" />
         </form>
       </div>
     </div>

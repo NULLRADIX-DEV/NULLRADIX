@@ -39,8 +39,8 @@ body[data-index-rising] .hud--bottom::before {
   margin-inline: auto;
 }
 
-/* the cue to the index: one line under the closing contact block; on wide screens it sits in the
-   middle of the bottom HUD bar instead, so the block keeps its room under the wordmark */
+/* the cue to the index: one line under the closing contact block; on wide screens it sits above the
+   HUD's clock at the right instead, so the block keeps its room under the wordmark */
 .more {
   display: none;
 }
@@ -73,7 +73,10 @@ body[data-mode='film'] .more:focus-visible {
   body[data-mode='film'] .more {
     position: fixed;
     top: auto;
-    bottom: calc(clamp(14px, 2.2vw, 34px) - 4px);
+    left: auto;
+    right: clamp(16px, 3vw, 48px);
+    bottom: calc(clamp(14px, 2.2vw, 34px) + 30px); /* just above the clock and the timeline */
+    translate: 10px 0;
   }
 }
 
@@ -87,16 +90,137 @@ body[data-mode='film'] .wordplay {
   left: 0;
   top: 0;
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.35em;
+  align-items: center;
+  gap: 0.7em;
+  padding: 7px 14px 7px 8px;
+  border: 1px solid color-mix(in oklab, var(--c-near) 22%, transparent);
+  border-radius: 40px;
+  background: rgba(12, 12, 13, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   white-space: nowrap;
-  color: var(--c-mid);
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-near);
+}
+.wordplay kbd,
+.hint kbd,
+.dossier__keys kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.9em;
+  height: 1.9em;
+  padding: 0 0.35em;
+  border: 1px solid color-mix(in oklab, var(--c-near) 45%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+  font-size: 0.95em;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--c-near);
+  background: rgba(250, 250, 251, 0.06);
+}
+.wordplay.is-calling {
+  animation: call 1.1s var(--ease-inout) infinite;
+}
+@keyframes call {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 250, 251, 0.35); }
+  50% { box-shadow: 0 0 0 9px rgba(250, 250, 251, 0); border-color: var(--c-near); }
 }
 .wordplay__caret {
-  width: 0.6em;
-  height: 1px;
+  width: 0.7em;
+  height: 1.5px;
+  align-self: flex-end;
+  margin-bottom: 0.25em;
   background: var(--c-near);
   animation: caret 1.05s steps(1) infinite;
+}
+
+/* the hints for what is hidden (hints.js): a card above the HUD, bottom left */
+.hint {
+  position: fixed;
+  left: clamp(16px, 3vw, 48px);
+  bottom: clamp(64px, 8vh, 96px);
+  z-index: 52;
+  display: flex;
+  align-items: stretch;
+  max-width: min(30rem, calc(100vw - 32px));
+  border: 1px solid color-mix(in oklab, var(--c-near) 28%, transparent);
+  border-radius: 12px;
+  background: rgba(19, 19, 21, 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.hint[hidden] {
+  display: none;
+}
+.hint.is-in {
+  opacity: 1;
+  transform: none;
+}
+.hint__go {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  padding: 12px 6px 12px 14px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-family: var(--ff-label);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--c-near);
+  cursor: pointer;
+}
+.hint__go kbd {
+  font-size: 1.05em;
+  animation: key-call 1.1s var(--ease-inout) infinite;
+}
+.hint__x {
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  color: var(--c-mid);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.hint__x:hover,
+.hint__x:focus-visible {
+  color: var(--c-near);
+}
+body[data-mode='film'].has-cursor .hint,
+body[data-mode='film'].has-cursor .hint * {
+  cursor: pointer;
+}
+
+/* the index lists them too */
+.dossier__keys {
+  margin-top: var(--sp-6);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-8);
+  font-family: var(--ff-label);
+  font-size: 0.88rem;
+  color: var(--c-muted);
+}
+.dossier__keys > span:not(.label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+.dossier__keys code {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+  color: var(--c-near);
 }
 @keyframes caret {
   50% { opacity: 0; }

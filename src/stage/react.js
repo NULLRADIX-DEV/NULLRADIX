@@ -13,7 +13,7 @@ export function createReactive({ sound, stage }) {
   const root = document.documentElement;
   const state = { pulse: 0 };
   let avg = 0, pulse = 0, live = false, shown = '';
-  const bandAvg = [0, 0, 0, 0];
+  const bandAvg = bars.map(() => 0);
 
   sound.on(({ kind }) => {
     if (HITS[kind]) stage.pulse(HITS[kind]);
@@ -34,8 +34,9 @@ export function createReactive({ sound, stage }) {
       // each bar: a little of its band's level, mostly how far it moves away from its own average
       const b = sound.bands, ease = Math.min(1, ctx.dt * 0.7);
       bars.forEach((el, k) => {
-        bandAvg[k] += (b[k] - bandAvg[k]) * ease;
-        const h = Math.max(0.15, Math.min(1, 0.25 + b[k] * 0.3 + (b[k] - bandAvg[k]) * 3));
+        const v = b[k] ?? 0;
+        bandAvg[k] += (v - bandAvg[k]) * ease;
+        const h = Math.max(0.12, Math.min(1, 0.2 + v * 0.45 + (v - bandAvg[k]) * 3.5));
         el.style.transform = `scaleY(${h.toFixed(2)})`;
       });
     }

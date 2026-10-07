@@ -296,7 +296,11 @@ export function createTerminal({ stage, panel, wordplay, swarm, cut }) {
     document.body.style.overflow = 'hidden'; // the wheel over the window must not move the film
     sfx('power');
     at = hist.length;
-    if (!out.childElementCount) print(['nullradix tty - type help to see what this can do.', '']);
+    if (!out.childElementCount) {
+      // the first time: say hello and show what it can do right away
+      print(['welcome to the nullradix terminal.', 'here is what it can do (type help any time):', '']);
+      C.help.run();
+    }
     input.focus({ preventScroll: true });
   }
   function close() {

@@ -19,8 +19,9 @@ const BEATS = [];
 for (let b = 6.5; b < 16.7; b += 0.5) BEATS.push(+b.toFixed(2));
 const TONE = { top: 420, about: 950, work: 620, skills: 760, contact: 340 };
 const SLAM_NOTES = [220, 261.63, 293.66, 329.63]; // Frontend, Backend, Mobile, Infrastructure
-const BANDS = [[20, 140], [140, 600], [600, 2500], [2500, 9000]]; // Hz, for the visuals
-const SILENT = [0, 0, 0, 0];
+// twelve log-spaced bands, 40 Hz - 12 kHz, for the HUD's equaliser and the visuals
+const BANDS = Array.from({ length: 12 }, (_, k) => [40 * Math.pow(300, k / 12), 40 * Math.pow(300, (k + 1) / 12)]);
+const SILENT = BANDS.map(() => 0);
 
 export function createSound({ arm = true } = {}) {
   const btn = qs('[data-sound]');
@@ -34,9 +35,9 @@ export function createSound({ arm = true } = {}) {
   }
   let ac = null, running = false, lastT = null;
   let master, bed, drone, droneFilter, air, airFilter, wet, noise, sat, under, page, lastCover = -1;
-  let comp, uiBus, analyser, fbins, tbins;
+  let comp, pre, uiBus, analyser, fbins, tbins;
   let level = 0, rewindAt = -1e9;
-  const bands = [0, 0, 0, 0];
+  const bands = BANDS.map(() => 0);
   const listeners = new Set();
   const emit = (kind, amp = 1) => {
     for (const fn of listeners) fn({ kind, amp });
@@ -63,7 +64,7 @@ export function createSound({ arm = true } = {}) {
       cc[i] = Math.sign(x) * (m < 0.7 ? m : 0.7 + 0.3 * Math.tanh((m - 0.7) / 0.3));
     }
     clip.curve = cc;
-    const pre = ac.createGain(); // the curve spans +-1.5: scale into the shaper's +-1 input range
+    pre = ac.createGain(); // the curve spans +-1.5: scale into the shaper's +-1 input range
     pre.gain.value = 1 / 1.5;
     comp.connect(pre).connect(clip).connect(ac.destination);
     sat = new Float32Array(1024); // tanh drive: gives low hits harmonics small speakers can play
@@ -77,8 +78,10 @@ export function createSound({ arm = true } = {}) {
     under.Q.value = 0.5;
     page = ac.createGain();
     master.connect(under).connect(page).connect(comp);
-    uiBus = ac.createGain(); // interface sounds: straight to the compressor, never muffled
-    uiBus.connect(comp);
+    // interface sounds: past the compressor (the bed would squash them) into the soft clip, never muffled
+    uiBus = ac.createGain();
+    uiBus.gain.value = 1.5;
+    uiBus.connect(pre);
     // what visuals react to: the film's sound and the interface, before the muffle
     analyser = ac.createAnalyser();
     analyser.fftSize = 1024;
@@ -299,19 +302,25 @@ export function createSound({ arm = true } = {}) {
     }
   }
   const UI = {
-    tick: [40, () => tone('sine', 3000 + Math.random() * 700, 2400, 0.03, 0.035)],
-    press: [60, () => {
-      tone('triangle', 1700, 1500, 0.025, 0.05);
-      tone('triangle', 1150, 1000, 0.03, 0.045, uiBus, 0.035);
-      tone('sine', 190, 90, 0.06, 0.08);
+    // a glassy tick: a short bright sine with a click of noise on top
+    tick: [40, () => {
+      tone('sine', 2600 + Math.random() * 600, 2000, 0.05, 0.32);
+      hiss(6000, 2, 0.014, 0.6);
     }],
+    // a press: two clicks and a small body underneath
+    press: [60, () => {
+      tone('triangle', 1700, 1400, 0.03, 0.2);
+      tone('triangle', 1150, 950, 0.035, 0.17, uiBus, 0.035);
+      tone('sine', 200, 85, 0.08, 0.3);
+    }],
+    // a key strike
     type: [22, () => {
-      hiss(2400 + Math.random() * 2400, 1.6, 0.025, 0.12);
-      tone('square', 700 + Math.random() * 300, 500, 0.012, 0.012);
+      hiss(2400 + Math.random() * 2400, 1.2, 0.035, 1.1);
+      tone('square', 700 + Math.random() * 300, 500, 0.018, 0.12);
     }],
     enter: [80, () => {
-      tone('sine', 880, 1320, 0.07, 0.06);
-      tone('sine', 1760, 1760, 0.25, 0.025, uiBus, 0.06);
+      tone('sine', 880, 1320, 0.08, 0.22);
+      tone('sine', 1760, 1760, 0.3, 0.09, uiBus, 0.06);
     }],
     whoosh: [150, () => {
       const t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
@@ -321,18 +330,18 @@ export function createSound({ arm = true } = {}) {
       f.frequency.setValueAtTime(350, t);
       f.frequency.exponentialRampToValueAtTime(3200, t + 0.35);
       f.frequency.exponentialRampToValueAtTime(500, t + 0.8);
-      env(g, t, 0.12, 0.22, 0.7);
+      env(g, t, 0.12, 0.5, 0.7);
       s.connect(f).connect(g).connect(uiBus);
       g.connect(wet);
       s.start(t);
       s.stop(t + 1);
-      tone('sine', 70, 40, 0.5, 0.12);
+      tone('sine', 70, 40, 0.5, 0.3);
     }],
     power: [200, () => {
-      tone('sine', 140, 900, 0.22, 0.07);
-      tone('square', 2200, 2200, 0.015, 0.02, uiBus, 0.22);
+      tone('sine', 140, 900, 0.22, 0.25);
+      tone('square', 2200, 2200, 0.02, 0.07, uiBus, 0.22);
     }],
-    off: [200, () => tone('sine', 900, 120, 0.22, 0.06)],
+    off: [200, () => tone('sine', 900, 120, 0.22, 0.22)],
     glitch: [300, () => {
       rewind();
       for (let i = 0; i < 5; i++) tone('square', 80 + Math.random() * 1800, 60, 0.05, 0.04, uiBus, i * 0.11);
@@ -425,7 +434,7 @@ export function createSound({ arm = true } = {}) {
     get level() {
       return running ? level : 0;
     },
-    /** 0..1 each: lows, low mids, mids, highs */
+    /** 0..1 each, twelve bands from the lows to the highs */
     get bands() {
       return running ? bands : SILENT;
     },

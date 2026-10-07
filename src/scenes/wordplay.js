@@ -10,6 +10,8 @@ import { show } from './kit.js';
 
 const MAX = 14;
 const IDLE = 8000; // ms without a key: back to the wordmark
+const DEMO_KEY = 'nr-morph-demo';
+const DEMO = 'hello.';
 const CHARS = /^[\p{L}\p{N} .,!?&@#+*'-]$/u;
 
 export function createWordplay(swarm) {
@@ -18,7 +20,13 @@ export function createWordplay(swarm) {
   const input = qs('[data-wordplay-input]');
   const coarse = matchMedia('(pointer: coarse)').matches;
   const hud = qs('[data-hud]');
-  let buf = '', timer = 0, idle = 0, shown = '', floor = 0;
+  let buf = '', timer = 0, idle = 0, shown = '', floor = 0, demo = null, call = 0;
+  let demoed = false;
+  try {
+    demoed = sessionStorage.getItem(DEMO_KEY) === '1';
+  } catch {
+    /* show it */
+  }
   const measure = () => (floor = hud.getBoundingClientRect().bottom + 6);
   addEventListener('resize', measure);
   measure();
@@ -33,7 +41,32 @@ export function createWordplay(swarm) {
     clearTimeout(idle);
     if (buf) idle = setTimeout(() => set(''), IDLE);
   }
+  // the first time the wordmark forms it shows what it can do: it says hello, then hands over
+  function runDemo() {
+    demoed = true;
+    try {
+      sessionStorage.setItem(DEMO_KEY, '1');
+    } catch {
+      /* again next time */
+    }
+    demo = [
+      setTimeout(() => {
+        if (buf || !swarm.live) return;
+        swarm.morph(DEMO);
+        sfx('whoosh');
+      }, 1200),
+      setTimeout(() => {
+        if (buf) return;
+        swarm.morph('');
+        call = performance.now() + 6000; // the hint calls for a while: your turn
+      }, 3600),
+    ];
+  }
   function set(next) {
+    if (demo) {
+      demo.forEach(clearTimeout); // typing beats the demo
+      demo = null;
+    }
     next = next.slice(0, MAX);
     if (next === buf) return;
     buf = next;
@@ -83,10 +116,13 @@ export function createWordplay(swarm) {
   // the hint above the wordmark, only where there is room for it
   function update() {
     const live = swarm.live;
-    const want = !live ? '' : buf ? 'Esc to reset' : coarse ? 'Tap the wordmark to type' : 'Type anything';
+    if (live && !demoed) runDemo();
+    const calling = !buf && performance.now() < call;
+    hint.classList.toggle('is-calling', calling);
+    const want = !live ? '' : buf ? 'Esc to reset' : calling ? 'Your turn - type anything' : coarse ? 'Tap the wordmark to type' : 'Type anything';
     if (want && want !== shown) hintText.textContent = want;
     shown = want || shown;
-    const top = swarm.box.y0 - 34;
+    const top = swarm.box.y0 - 46;
     const room = top >= floor;
     show(hint, live && room ? 1 : 0, `translate3d(${((swarm.box.x0 + swarm.box.x1) / 2).toFixed(0)}px,${top.toFixed(0)}px,0) translateX(-50%)`);
     if (!live && buf && swarm.word === 'NULLRADIX') buf = ''; // the film took the wordmark back

@@ -24,6 +24,7 @@ import { createTerminal } from './modules/terminal.js';
 import { createCut } from './stage/cut.js';
 import { createReactive } from './stage/react.js';
 import { createScrub } from './stage/scrub.js';
+import { createHints } from './stage/hints.js';
 import { wirePageJumps, takeArrival } from './modules/pagejump.js';
 import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
@@ -83,7 +84,8 @@ function startFilm(anchors, panel) {
   stage.add(createContact());
   const cut = createCut({ stage, swarm });
   stage.add(cut.update); // last: it reads where everything ended up this frame
-  createTerminal({ stage, panel, wordplay, swarm, cut: cut.toggle });
+  const terminal = createTerminal({ stage, panel, wordplay, swarm, cut: cut.toggle });
+  stage.add(createHints({ terminal, cut }));
   wirePageJumps({ onPhase: (p) => sound.jump(p) }); // Impressum, Datenschutz: through the lens
   wireUiSound(sound);
   motionToggle('Motion on', () => {

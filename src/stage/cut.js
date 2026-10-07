@@ -21,8 +21,11 @@ export function createCut({ stage, swarm }) {
   let on = false, dpr = 1, cw = 0, ch = 0, path = null, pathFmt = '', fps = 60, cost = 0, moved = [];
   const P0 = [0, 0, 0, 0], P1 = [0, 0, 0, 0];
 
+  const chip = qs('[data-cut-open]');
+  chip?.addEventListener('click', () => toggle());
   function toggle() {
     on = !on;
+    chip?.setAttribute('aria-pressed', String(on));
     root.classList.toggle('is-cut', on);
     canvas.hidden = !on;
     sfx(on ? 'power' : 'off');

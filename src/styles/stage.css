@@ -351,7 +351,7 @@ body[data-mode='film'].has-cursor .panel button {
   display: inline-flex;
   align-items: flex-end;
   gap: 2px;
-  height: 10px;
+  height: 16px;
 }
 .hud__eq i {
   width: 2px;
@@ -367,11 +367,11 @@ body[data-mode='film'].has-cursor .panel button {
 .hud__btn[data-running] .hud__eq i:nth-child(4) { animation-delay: -0.45s; }
 @keyframes eq {
   from { height: 2px; }
-  to { height: 10px; }
+  to { height: 16px; }
 }
 /* driven by the real bands (react.js) once the sound runs */
 .hud__eq.is-live i {
-  height: 10px;
+  height: 16px;
   transform-origin: 50% 100%;
   animation: none !important;
   transition: none;
