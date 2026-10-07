@@ -13,7 +13,7 @@ const SPIN = 0.12; // idle turn, rad/s
 const TURN = 0.6; // how far it turns towards the cursor (rad at the screen edge)
 const LEAN = 0.14; // and tilts
 
-export function createSphereLayer() {
+export function createSphereLayer({ react = { state: { pulse: 0 } } } = {}) {
   const points = createPoints(qs('[data-sphere]'), { crisp: 0.85 }); // sharp dots at device resolution
   const N = SPHERE_N;
   const sim = createSwarm(N);
@@ -50,6 +50,11 @@ export function createSphereLayer() {
     const zc = f[0] * (SPHERE_C[0] - eye[0]) + f[1] * (SPHERE_C[1] - eye[1]) + f[2] * (SPHERE_C[2] - eye[2]);
     const k = ctx.fit.k, ox = ctx.fit.ox + ctx.film.x, oy = ctx.fit.oy + ctx.film.y;
     const cx = ctx.world.CX + sx + ctx.impact.sx, cy = ctx.world.CY + sy + ctx.impact.sy;
+    // the sound's pulse swells the sphere a little around its centre
+    const pulse = react.state.pulse, swell = 1 + 0.03 * pulse;
+    const qx = SPHERE_C[0] - eye[0], qy = SPHERE_C[1] - eye[1], qz = SPHERE_C[2] - eye[2];
+    const ccx = ox + (cx + (F * (r[0] * qx + r[1] * qy + r[2] * qz)) / zc) * k;
+    const ccy = oy + (cy + (F * (d[0] * qx + d[1] * qy + d[2] * qz)) / zc) * k;
     for (let j = 0; j < N; j++) {
       lit[j] = spherePoint(j, t, P, spin + turn, lean * a);
       const px = P[0] - eye[0], py = P[1] - eye[1], pz = P[2] - eye[2];
@@ -59,13 +64,13 @@ export function createSphereLayer() {
         continue;
       }
       lit[j] *= 0.8 + 0.2 * Math.max(-1, Math.min(1, (zc - dz) / SPHERE_R));
-      hx[j] = ox + (cx + (F * (r[0] * px + r[1] * py + r[2] * pz)) / dz) * k;
-      hy[j] = oy + (cy + (F * (d[0] * px + d[1] * py + d[2] * pz)) / dz) * k;
+      hx[j] = ccx + (ox + (cx + (F * (r[0] * px + r[1] * py + r[2] * pz)) / dz) * k - ccx) * swell;
+      hy[j] = ccy + (oy + (cy + (F * (d[0] * px + d[1] * py + d[2] * pz)) / dz) * k - ccy) * swell;
     }
     const radius = Math.max(60, Math.min(120, ctx.vw * 0.06));
     stepSwarm(sim, hx, hy, dt, { x: ctx.pointer.x, y: ctx.pointer.y, radius, on: ctx.pointer.inside && a > 0.5 });
 
-    const base = 0.42 * a;
+    const base = 0.42 * a * (1 + 0.6 * pulse);
     for (let j = 0, o = 0; j < N; j++, o += 3) {
       const speed = Math.abs(sim.vx[j]) + Math.abs(sim.vy[j]);
       data[o] = hx[j] + sim.ox[j];

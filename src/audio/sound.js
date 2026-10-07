@@ -83,6 +83,8 @@ export function createSound({ arm = true } = {}) {
     analyser = ac.createAnalyser();
     analyser.fftSize = 1024;
     analyser.smoothingTimeConstant = 0.55;
+    analyser.minDecibels = -90;
+    analyser.maxDecibels = -12; // the drone alone must not pin the low band
     master.connect(analyser);
     uiBus.connect(analyser);
     fbins = new Uint8Array(analyser.frequencyBinCount);

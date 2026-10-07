@@ -22,6 +22,7 @@ import { createSwarmLayer } from './scenes/swarm.js';
 import { createWordplay } from './scenes/wordplay.js';
 import { createTerminal } from './modules/terminal.js';
 import { createCut } from './stage/cut.js';
+import { createReactive } from './stage/react.js';
 import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
@@ -61,14 +62,16 @@ function startFilm(anchors, panel) {
   });
   stage.add(gate.update);
   stage.add(sound.update); // first: the visuals read this frame's levels and hits
+  const react = createReactive({ sound, stage });
+  stage.add(react.update);
   stage.add(createHud());
   stage.add(createFx());
-  stage.add(createSphereLayer());
+  stage.add(createSphereLayer({ react }));
   stage.add(createHero());
   stage.add(createAbout());
   stage.add(createWork(anchors));
   stage.add(createSkills());
-  const swarm = createSwarmLayer();
+  const swarm = createSwarmLayer({ react });
   stage.add(swarm.update);
   const wordplay = createWordplay(swarm);
   stage.add(wordplay.update);

@@ -205,6 +205,7 @@ body[data-mode='film'].has-cursor .panel button {
   top: -10px;
   width: 20px;
   height: 20px;
+  scale: calc(1 + var(--pulse, 0) * 0.6); /* it jumps with the sound */
   transition: transform var(--dur-fast) var(--ease);
 }
 .cursor__cross::before,
@@ -367,6 +368,13 @@ body[data-mode='film'].has-cursor .panel button {
 @keyframes eq {
   from { height: 2px; }
   to { height: 10px; }
+}
+/* driven by the real bands (react.js) once the sound runs */
+.hud__eq.is-live i {
+  height: 10px;
+  transform-origin: 50% 100%;
+  animation: none !important;
+  transition: none;
 }
 .hud__lens,
 .hud__time,

@@ -16,7 +16,7 @@ const DUR = 0.9; // seconds one particle takes to fly to its new home
 const WAVE = 0.45; // the flights start as a wave from left to right over this long
 const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
 
-export function createSwarmLayer() {
+export function createSwarmLayer({ react = { state: { pulse: 0 } } } = {}) {
   const points = createPoints(qs('[data-swarm]'), { crisp: 0.8 }); // sharp dots at device resolution
 
   const wx = new Float32Array(N), wy = new Float32Array(N), phase = new Float32Array(N);
@@ -171,7 +171,7 @@ export function createSwarmLayer() {
     stepSwarm(sim, hx, hy, Math.min(ctx.dt, 1 / 30), { x: ctx.pointer.x, y: ctx.pointer.y, radius, on: ctx.pointer.inside && a > 0.5 });
 
     flare = Math.max(0, flare - ctx.dt * 3);
-    const base = 0.45 * a * gain * (1 + 0.9 * flare);
+    const base = 0.45 * a * gain * (1 + 0.9 * flare + 0.5 * react.state.pulse);
     for (let i = 0, j = 0; i < N; i++, j += 3) {
       const speed = Math.abs(sim.vx[i]) + Math.abs(sim.vy[i]);
       data[j] = hx[i] + sim.ox[i] + Math.sin(t * 1.7 + phase[i]) * 0.6;
