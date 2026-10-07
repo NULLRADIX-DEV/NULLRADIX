@@ -24,6 +24,7 @@ import { createTerminal } from './modules/terminal.js';
 import { createCut } from './stage/cut.js';
 import { createReactive } from './stage/react.js';
 import { createScrub } from './stage/scrub.js';
+import { wirePageJumps, takeArrival } from './modules/pagejump.js';
 import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
@@ -33,6 +34,7 @@ import { bindSfx } from './utils/sfx.js';
 let stage = null;
 
 function boot() {
+  takeArrival(); // the start page opens onto its gate, not through the lens
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   const panel = createPanel({ onOpen: () => stage?.pause(), onClose: () => stage?.resume(), list: tour.map((x) => x.project) });
   const anchors = renderContent(panel);
@@ -82,6 +84,7 @@ function startFilm(anchors, panel) {
   const cut = createCut({ stage, swarm });
   stage.add(cut.update); // last: it reads where everything ended up this frame
   createTerminal({ stage, panel, wordplay, swarm, cut: cut.toggle });
+  wirePageJumps({ onPhase: (p) => sound.jump(p) }); // Impressum, Datenschutz: through the lens
   wireUiSound(sound);
   motionToggle('Motion on', () => {
     setMotionOverride('0');

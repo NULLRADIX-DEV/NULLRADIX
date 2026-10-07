@@ -4,6 +4,7 @@
 @import './base.css';
 @import './layout.css';
 @import './ui.css';
+@import './jump.css';
 
 .legal {
   width: min(100% - calc(var(--gutter) * 2), var(--container));

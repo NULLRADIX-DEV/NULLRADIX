@@ -12,6 +12,8 @@
         <meta name="description" content="Datenschutzerklärung - NULLRADIX" />
         <meta name="robots" content="noindex" />
 
+        <!-- arriving through the lens: stay closed until legal.js opens it -->
+        <script>try{if(sessionStorage.getItem('nr-iris'))document.documentElement.classList.add('is-arriving')}catch(e){}</script>
         <script type="module" src="/src/legal.js"></script>
     </head>
 
@@ -21,6 +23,14 @@
         <!-- ambient background -->
         <div class="ghost" aria-hidden="true" data-ghost>NR</div>
         <div class="grain" aria-hidden="true"></div>
+        <div class="jump" data-jump hidden aria-hidden="true">
+          <div class="jump__iris"></div>
+          <div class="jump__rim"></div>
+          <span class="jump__line"></span>
+          <span class="jump__cross"></span>
+          <p class="jump__label" data-jump-label></p>
+          <p class="jump__coords" data-jump-coords></p>
+        </div>
 
         <header class="site-header">
             <div class="header-bar">

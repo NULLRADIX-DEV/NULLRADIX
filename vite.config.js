@@ -14,6 +14,7 @@ export default defineConfig({
         main: 'index.html',
         impressum: 'impressum.html',
         datenschutz: 'datenschutz.html',
+        notfound: '404.html',
       },
     },
   },
