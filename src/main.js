@@ -18,6 +18,7 @@ import { createWork } from './scenes/work.js';
 import { createSkills } from './scenes/skills.js';
 import { createContact } from './scenes/contact.js';
 import { createSwarmLayer } from './scenes/swarm.js';
+import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
 import { qs, qsa } from './utils/dom.js';
@@ -55,6 +56,7 @@ function startFilm(anchors) {
   stage.add(gate.update);
   stage.add(createHud());
   stage.add(createFx());
+  stage.add(createSphereLayer());
   stage.add(createHero());
   stage.add(createAbout());
   stage.add(createWork(anchors));

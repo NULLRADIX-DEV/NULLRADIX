@@ -2,7 +2,7 @@
  * Builds every content block from src/data/content.js. The same markup serves both modes:
  * the film mode positions it in fixed layers, the static mode lets it flow.
  */
-import { profile, projects, about, skills, experience, socials, axes } from '../data/content.js';
+import { profile, projects, about, disciplines, skills, experience, socials, axes } from '../data/content.js';
 import { NODES, STOPS, SLAMS, MILESTONES } from '../film/world.js';
 import { qs, el } from '../utils/dom.js';
 
@@ -24,12 +24,16 @@ export function renderContent(panel) {
   qs('[data-about-lead]').replaceChildren(
     ...about.lead.split(' ').flatMap((w, i) => [i ? ' ' : '', el('span', { class: 'word' }, w)]),
   );
-  qs('[data-principles]').replaceChildren(
-    ...about.principles.map((p, i) =>
-      el('li', { class: 'principle', 'data-focus-t': (SLAMS[i] ?? 14) + 0.8 }, [
-        el('span', { class: 'principle__n label' }, `${pad(i + 1)} / ${pad(about.principles.length)}`),
-        el('h3', { class: 'principle__k' }, `${p.k}.`),
-        el('p', { class: 'principle__v' }, p.v),
+  qs('[data-tenets]').replaceChildren(
+    ...about.principles.map((p) => el('div', { class: 'tenet' }, [el('dt', { class: 'tenet__k' }, p.k), el('dd', { class: 'tenet__v' }, p.v)])),
+  );
+  // the bore's slam words (film only)
+  qs('[data-slams]').replaceChildren(
+    ...disciplines.map((d, i) =>
+      el('li', { class: 'slam' }, [
+        el('span', { class: 'slam__n label' }, `${pad(i + 1)} / ${pad(disciplines.length)}`),
+        el('p', { class: 'slam__k' }, `${d.k}.`),
+        el('p', { class: 'slam__v label' }, d.v),
       ]),
     ),
   );

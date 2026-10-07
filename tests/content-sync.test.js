@@ -20,3 +20,10 @@ test('one glass panel per skill group', () => {
 test('one timeline marker per experience entry', () => {
   assert.equal(MILESTONES.length, experience.length);
 });
+
+test('one slam word in the bore per discipline', async () => {
+  const { disciplines } = await import('../src/data/content.js');
+  const { SLAMS } = await import('../src/film/world.js');
+  assert.equal(disciplines.length, SLAMS.length);
+  for (const d of disciplines) assert.ok(d.k && d.v);
+});

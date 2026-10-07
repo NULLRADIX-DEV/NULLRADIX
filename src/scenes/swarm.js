@@ -6,63 +6,19 @@
 import { IMPLODE_C, WM_HANDOFF, PLANE_N, sstep, rnd } from '../film/world.js';
 import { qs } from '../utils/dom.js';
 import { createSwarm, stepSwarm } from './swarm-sim.js';
+import { createPoints } from './points.js';
 
 const N = PLANE_N * PLANE_N; // the film's wordmark uses exactly this many particles
 const FONT = '"Roboto Flex Variable"';
 
-const VERT = `#version 300 es
-in vec3 a;
-uniform vec2 uView;
-uniform float uSize;
-out float vB;
-void main() {
-  gl_Position = vec4(a.x / uView.x * 2.0 - 1.0, 1.0 - a.y / uView.y * 2.0, 0.0, 1.0);
-  gl_PointSize = uSize;
-  vB = a.z;
-}`;
-const FRAG = `#version 300 es
-precision mediump float;
-in float vB;
-out vec4 o;
-void main() {
-  vec2 c = gl_PointCoord - 0.5;
-  float k = exp(-dot(c, c) * 9.0) * vB;
-  o = vec4(vec3(0.98, 0.98, 0.985) * k, k);
-}`;
-
 export function createSwarmLayer() {
-  const canvas = qs('[data-swarm]');
-  const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
-  const g2 = gl ? null : canvas.getContext('2d');
-  let prog, vbo, uView, uSize;
-  if (gl) {
-    const sh = (type, src) => {
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      return s;
-    };
-    prog = gl.createProgram();
-    gl.attachShader(prog, sh(gl.VERTEX_SHADER, VERT));
-    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FRAG));
-    gl.linkProgram(prog);
-    gl.useProgram(prog);
-    vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    const loc = gl.getAttribLocation(prog, 'a');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
-    uView = gl.getUniformLocation(prog, 'uView');
-    uSize = gl.getUniformLocation(prog, 'uSize');
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE); // particles add up like light, as in the film
-  }
+  const points = createPoints(qs('[data-swarm]'));
 
   const wx = new Float32Array(N), wy = new Float32Array(N), phase = new Float32Array(N);
   const hx = new Float32Array(N), hy = new Float32Array(N), data = new Float32Array(N * 3);
   const sim = createSwarm(N);
   for (let i = 0; i < N; i++) phase[i] = rnd(i * 6.61 + 0.6) * 6.2832;
-  let sampledFor = '', fontReady = false, shown = false, cw = 0, ch = 0;
+  let sampledFor = '', fontReady = false;
   document.fonts.load(`700 100px ${FONT}`).then(() => (fontReady = true));
 
   // same glyph sampling as the film engine (film pixels around the frame centre)
@@ -91,12 +47,8 @@ export function createSwarmLayer() {
   }
 
   function clear() {
-    if (!shown) return;
-    shown = false;
-    if (gl) {
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-    } else g2.clearRect(0, 0, canvas.width, canvas.height);
+    if (!points.shown) return;
+    points.clear();
     sim.ox.fill(0);
     sim.oy.fill(0);
     sim.vx.fill(0);
@@ -112,13 +64,7 @@ export function createSwarmLayer() {
       sample(world);
       sampledFor = ctx.fmt;
     }
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    if (cw !== ctx.vw || ch !== ctx.vh) {
-      cw = ctx.vw;
-      ch = ctx.vh;
-      canvas.width = Math.round(cw * dpr);
-      canvas.height = Math.round(ch * dpr);
-    }
+    points.resize(ctx.vw, ctx.vh);
 
     // homes: the film's wordmark plane through the camera of the frame on screen
     const { r, d, f, F, eye, sx, sy } = cam;
@@ -143,21 +89,6 @@ export function createSwarmLayer() {
       data[j + 1] = hy[i] + sim.oy[i] + Math.cos(t * 1.3 + phase[i]) * 0.6;
       data[j + 2] = base * (1 + 0.15 * Math.sin(t * 3 + phase[i])) + Math.min(0.6, speed * 0.0025) * a;
     }
-    shown = true;
-    if (gl) {
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-      gl.uniform2f(uView, cw, ch);
-      gl.uniform1f(uSize, Math.max(3, 4.2 * k) * dpr);
-      gl.drawArrays(gl.POINTS, 0, N);
-    } else {
-      g2.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g2.clearRect(0, 0, cw, ch);
-      g2.globalCompositeOperation = 'lighter';
-      g2.fillStyle = `rgba(250,250,251,${(0.42 * a).toFixed(3)})`;
-      for (let j = 0; j < data.length; j += 3) g2.fillRect(data[j] - 0.8, data[j + 1] - 0.8, 1.6, 1.6);
-    }
+    points.draw(data, N, Math.max(3, 4.2 * k));
   };
 }

@@ -107,18 +107,38 @@ export const PLANE_STEP = 28; // hero plane dot spacing
 export const PLANE_N = 173; // dots per side (173² ≈ 30k)
 export const SPHERE_C = [0, -520, 0];
 export const SPHERE_R = 300;
+export const SPHERE_N = 14000;
+// the hero sphere: film and site compute every point with this one function, so the site's live,
+// interactive sphere matches the film's exactly. Extra yaw/pitch let the live sphere turn to the cursor.
+export function spherePoint(j, t, out, yawAdd = 0, pitchAdd = 0) {
+  const y = 1 - (2 * (j + 0.5)) / SPHERE_N, r = Math.sqrt(1 - y * y), ph = j * 2.399963;
+  const yaw = 0.35 * t + yawAdd, cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const R = SPHERE_R * (1 + 0.015 * Math.sin(t * 2.1 + rnd((30000 + j) * 1.13 + 0.1) * 6.28));
+  const sx = Math.cos(ph) * r, sz = Math.sin(ph) * r;
+  const x = sx * cy + sz * sy, z = -sx * sy + sz * cy;
+  const tilt = 0.32 + pitchAdd, ct = Math.cos(tilt), st = Math.sin(tilt);
+  out[0] = SPHERE_C[0] + x * R;
+  out[1] = SPHERE_C[1] + (y * ct - z * st) * R;
+  out[2] = SPHERE_C[2] + (y * st + z * ct) * R;
+  const scan = Math.sin(t * 1.1) * 0.85;
+  return 0.7 + 0.9 * Math.exp(-(((y - scan) / 0.05) ** 2));
+}
+// the film hands its sphere to the site at the end of the intro and takes it back before the dive
+export const SPHERE_LIVE = [[2.85, 3.0], [4.35, 4.55]];
+export const sphereLive = (t) => sstep(SPHERE_LIVE[0][0], SPHERE_LIVE[0][1], t) * (1 - sstep(SPHERE_LIVE[1][0], SPHERE_LIVE[1][1], t));
 export const TUBE_Y = -520;
 export const TUBE_R = 460;
 export const TUBE_Z0 = -150;
 export const W0 = [0, 0, -13400]; // centre of the work plane
 export const GRID_SCALE = 22; // world units per content coordinate unit
 export const PILLAR_H = 560;
-export const SLAMS = [10.0, 12.0, 14.0];
+// the bore's four impacts (as in the 30 s film): Frontend. Backend. Mobile. Infrastructure.
+export const SLAMS = [10.0, 11.5, 13.0, 14.5];
 
 const TUBE_V = 850;
 export function tubeZ(t) {
   let z = -1200 - TUBE_V * (t - 7.5);
-  for (const s of SLAMS) z -= 90 * sstep(s - 0.05, s + 0.35, t);
+  for (const s of SLAMS) z -= (270 / SLAMS.length) * sstep(s - 0.05, s + 0.35, t); // total lurch fixed: the bore ends at the same depth
   return z;
 }
 export const PORTAL_Z = tubeZ(16.8);
@@ -232,8 +252,8 @@ export function impactAt(t) {
 // scroll keyframes: [film time, cumulative viewport heights]. Scroll 0 = end of the intro (t = 3).
 export const SCROLL_KEYS = (() => {
   const k = [
-    [3.0, 0], [4.6, 1.1], [5.9, 2.0], [7.5, 2.9], [8.1, 3.4], [9.6, 5.0], [10.6, 5.8], [11.8, 6.6],
-    [12.6, 7.3], [13.8, 8.0], [14.6, 8.7], [15.8, 9.4], [16.8, 10.1], [19.0, 11.8],
+    [3.0, 0], [4.6, 1.1], [5.9, 2.0], [7.5, 2.9], [8.1, 3.4], [9.6, 5.0], [10.5, 5.6], [11.3, 6.2], [12.0, 6.7],
+    [12.8, 7.3], [13.5, 7.8], [14.3, 8.4], [15.0, 8.9], [15.8, 9.4], [16.8, 10.1], [19.0, 11.8],
   ];
   let v = 11.8;
   for (const s of STOPS) {

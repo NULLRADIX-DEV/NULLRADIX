@@ -76,3 +76,24 @@ test('impactAt is quiet between cues and peaks right after a drop', () => {
   const before = W.impactAt(46.55);
   assert.ok(before.flash < 0.05);
 });
+
+test('four slams in the bore, and the bore still ends where it did', () => {
+  assert.equal(W.SLAMS.length, 4);
+  assert.ok(Math.abs(W.PORTAL_Z - -9375) < 1e-6, `PORTAL_Z ${W.PORTAL_Z}`);
+});
+
+test('spherePoint lies on the sphere and the scan band only brightens', () => {
+  const out = [0, 0, 0];
+  for (const j of [0, 777, 13999]) {
+    const b = W.spherePoint(j, 3.4, out);
+    const r = W.len3(W.sub3(out, W.SPHERE_C));
+    assert.ok(Math.abs(r - W.SPHERE_R) <= W.SPHERE_R * 0.016, `r=${r}`);
+    assert.ok(b >= 0.7 && b <= 1.6);
+  }
+});
+
+test('the live sphere owns the hero, the film owns the intro and the dive', () => {
+  assert.equal(W.sphereLive(2.0), 0);
+  assert.equal(W.sphereLive(3.5), 1);
+  assert.equal(W.sphereLive(5.0), 0);
+});

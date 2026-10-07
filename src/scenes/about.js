@@ -1,6 +1,7 @@
 /**
- * About, inside the code bore: the lead lights up word by word, then each principle slams in
- * on its film impact - heavy and wide, settling into the resting cut - and is blown past.
+ * About, inside the code bore: the lead lights up word by word above the three principles, then
+ * Frontend. Backend. Mobile. Infrastructure. slam in, each on its film impact - heavy and wide,
+ * settling into the resting cut - and is blown past.
  */
 import { qs, qsa } from '../utils/dom.js';
 import { SLAMS } from '../film/world.js';
@@ -10,7 +11,7 @@ export function createAbout() {
   const block = qs('[data-about]');
   const parts = [...block.children];
   const words = qsa('[data-about-lead] .word');
-  const items = qsa('[data-principles] .principle');
+  const items = qsa('[data-slams] .slam');
   const ends = SLAMS.map((s, i) => (SLAMS[i + 1] ?? 16.25) - 0.35);
 
   return (ctx) => {
@@ -30,7 +31,7 @@ export function createAbout() {
         w.style.opacity = o;
       }
     });
-    // principles
+    // slam words
     items.forEach((li, i) => {
       const s = SLAMS[i], u = t - s;
       if (u < -0.02 || t > ends[i] + 0.4) {
@@ -39,14 +40,14 @@ export function createAbout() {
       }
       const k = eOut(P(u, 0, 0.22)), kw = eOut(P(u, 0, 0.55));
       const ke = P(t, ends[i] - 0.05, ends[i] + 0.35);
-      const word = li.querySelector('.principle__k');
+      const word = li.querySelector('.slam__k');
       word.style.fontVariationSettings = `"wght" ${lerp(1000, 760, kw).toFixed(0)},"wdth" ${lerp(150, 80, k).toFixed(1)},"opsz" 144`;
       word.style.letterSpacing = `${lerp(0.12, -0.035, k).toFixed(3)}em`;
       word.style.transform = `scale(${(lerp(1.55, 1, k) * (1 + 0.35 * ke)).toFixed(4)})`;
       const desc = eOut(P(u, 0.2, 0.65));
-      li.querySelector('.principle__v').style.opacity = desc.toFixed(3);
-      li.querySelector('.principle__v').style.transform = `translate3d(0,${((1 - desc) * 16).toFixed(1)}px,0)`;
-      li.querySelector('.principle__n').style.opacity = desc.toFixed(3);
+      li.querySelector('.slam__v').style.opacity = desc.toFixed(3);
+      li.querySelector('.slam__v').style.transform = `translate3d(0,${((1 - desc) * 16).toFixed(1)}px,0)`;
+      li.querySelector('.slam__n').style.opacity = desc.toFixed(3);
       show(li, Math.min(1, u / 0.035) * (1 - ke));
     });
   };

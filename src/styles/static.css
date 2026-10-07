@@ -40,18 +40,11 @@ body[data-mode='static'] .scene--hero {
 body[data-mode='static'] .about__lead {
   max-width: 34ch;
 }
-body[data-mode='static'] .principles {
-  margin-top: var(--sp-16);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: var(--sp-8);
+body[data-mode='static'] .slams {
+  display: none;
 }
-body[data-mode='static'] .principle__k {
-  margin-top: var(--sp-3);
-  font-size: clamp(2.2rem, 1rem + 3vw, 3.6rem);
-}
-body[data-mode='static'] .principle__v {
-  margin-top: var(--sp-3);
+body[data-mode='static'] .tenets {
+  margin-top: var(--sp-12);
 }
 body[data-mode='static'] .projects {
   margin-top: var(--sp-12);

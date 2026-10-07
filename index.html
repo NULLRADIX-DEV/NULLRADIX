@@ -30,6 +30,7 @@
     <!-- the film: one canvas behind everything, plus the instrument marks anchored into its camera -->
     <div class="stage" aria-hidden="true">
       <canvas class="film" data-film></canvas>
+      <canvas class="swarm" data-sphere></canvas>
       <canvas class="swarm" data-swarm></canvas>
       <div class="shade" data-shade></div>
       <svg class="leaders" data-leaders></svg>
@@ -120,8 +121,9 @@
             <p class="label">About <span class="label__sep">/</span> 01</p>
             <h2 id="about-h" class="about__title">How I work</h2>
             <p class="about__lead" data-about-lead></p>
+            <dl class="tenets" data-tenets></dl>
           </div>
-          <ol class="principles" data-principles></ol>
+          <ol class="slams" data-slams aria-hidden="true"></ol>
         </div>
       </section>
 
