@@ -15,6 +15,9 @@
   max-width: none;
   will-change: transform;
 }
+.film--fx {
+  visibility: hidden; /* shown only while a speed effect runs */
+}
 .swarm {
   position: absolute;
   inset: 0;

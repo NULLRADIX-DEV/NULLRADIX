@@ -11,6 +11,7 @@ import { createPlayer } from '../film/player.js';
 import { coverFit, toScreen, pickFormat } from './cover.js';
 import { makeScrollMap } from './scrollmap.js';
 import { createJump } from './jump.js';
+import { createSpeedFx } from './speedfx.js';
 import { f4 } from './hud.js';
 
 const INTRO_KEY = 'nr-intro-seen';
@@ -21,6 +22,8 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   const canvas = document.querySelector('[data-film]');
   const sections = [...document.querySelectorAll('[data-scene]')];
   const dossier = document.querySelector('[data-dossier]'); // the index after the film, in normal flow
+  const fxLayer = document.querySelector('[data-film-fx]');
+  const speedfx = fxLayer ? createSpeedFx(canvas, fxLayer) : null; // fast scrubbing: blur forwards, rewind back
   const map = makeScrollMap(W.SCROLL_KEYS);
   const T0 = W.SCROLL_KEYS[0][0];
   const coarse = matchMedia('(pointer: coarse)').matches;
@@ -39,7 +42,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
   let player = null;
   let t = T0, intro = null, raf = 0, last = 0, failed = false, selfFocus = false;
   let indexTop = Infinity; // document y where the index begins
-  let lastPlay = t, speed = 0;
+  let lastPlay = t, speed = 0, kick = 0, fxSpeed = true;
   const pointer = { x: vw / 2, y: vh / 2, nx: 0, ny: 0, tx: 0, ty: 0, inside: false };
 
   const scrollY = () => (lenis ? lenis.scroll : window.scrollY);
@@ -277,6 +280,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     const v = intro || jump.busy || !dt || Math.abs(step) >= 1.5 ? 0 : step / dt;
     speed += (v - speed) * Math.min(1, dt * 12);
     if (Math.abs(speed) < 1e-3) speed = 0;
+    kick = Math.max(0, kick - dt * 5);
 
     player?.setFrame(t * W.FPS);
     const shown = player && player.frame >= 0 ? player.frame / W.FPS : t;
@@ -287,6 +291,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
     film.x = -pointer.nx * 12;
     film.y = -pointer.ny * 8;
     canvas.style.transform = `translate3d(${film.x.toFixed(2)}px,${film.y.toFixed(2)}px,0)`;
+    speedfx?.render({ speed: fxSpeed ? speed : 0, kick: kick * kick, transform: canvas.style.transform });
 
     // everything on the page follows the frame that is actually on screen, never the target ahead of it
     ctx.t = shown;
@@ -345,6 +350,14 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
       travel(Math.max(T0, Math.min(W.DUR, target)), null);
     },
     gotoScene,
+    /** a beat: the film breathes in once (decays by itself) */
+    pulse(k = 1) {
+      kick = Math.max(kick, Math.min(1, k));
+    },
+    /** the speed effects can be switched off (the terminal, tests) */
+    set speedFx(on) {
+      fxSpeed = !!on;
+    },
     get jumping() {
       return jump.busy;
     },
@@ -354,7 +367,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, onJump = (
         frame: player ? player.frame : -1,
         target: Math.round(t * W.FPS),
         decodeFps: player ? player.decodeFps : 0,
-        mode: player ? player.mode : '-',
+        mode: player ? `${player.mode} · fx ${speedfx ? speedfx.kind : 'off'}` : '-',
         gops: player ? player.cached : 0,
         buffer: player ? player.progress : 0,
         velocity: lenis ? lenis.velocity : 0,
