@@ -31,7 +31,7 @@ export function createTerminal({ stage, panel, wordplay, swarm, cut }) {
   const form = qs('[data-term-form]');
   const input = qs('[data-term-in]');
   const opener = qs('[data-term-open]');
-  let open = false, lastFocus = null, hist = [], at = 0, queue = Promise.resolve();
+  let open = false, lastFocus = null, hist = [], at = 0, queue = Promise.resolve(), dead = false;
   try {
     hist = JSON.parse(sessionStorage.getItem(HIST_KEY) || '[]');
   } catch {
@@ -301,6 +301,7 @@ export function createTerminal({ stage, panel, wordplay, swarm, cut }) {
       print(['welcome to the nullradix terminal.', 'here is what it can do (type help any time):', '']);
       C.help.run();
     }
+    input.value = ''; // a fresh prompt every time it opens
     input.focus({ preventScroll: true });
   }
   function close() {
@@ -317,11 +318,23 @@ export function createTerminal({ stage, panel, wordplay, swarm, cut }) {
 
   onKey((e) => {
     if (e.key === '~' || e.code === 'Backquote') {
+      // on a German keyboard ^ is a dead key: the system holds it back and puts it in front of the
+      // next letter typed (^h, or ê for a vowel) - nothing in the page can cancel that, so the
+      // first thing typed gets cleaned up instead
+      dead = e.key === 'Dead';
       show();
       return true;
     }
     return false;
   }, 10);
+  input.addEventListener('input', () => {
+    if (!dead) return;
+    dead = false;
+    const v = input.value;
+    const clean = v.replace(/^[\^`´]/, '').replace(/^./, (c) => c.normalize('NFD').replace(/[\u0300-\u0302]/g, '').normalize('NFC'));
+    if (clean !== v) input.value = clean;
+  });
+  input.addEventListener('blur', () => (dead = false));
   opener?.addEventListener('click', () => (open ? close() : show()));
 
   return { open: show, close, run, get isOpen() { return open; } };
