@@ -87,8 +87,13 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
   }
 
   /* ---------------- WebCodecs ---------------- */
-  let decoder = null, decoderKey = '', job = null, decodeErrors = 0;
-  let decoding = false, retryAt = 0, lookahead = 1, decodeFps = 0;
+  // GOPs are pipelined: up to MAX_INFLIGHT are queued at once, so the decoder never idles waiting for
+  // us and frames it holds back get pushed out by the next GOP (a flush only when nothing follows).
+  const MAX_INFLIGHT = 3;
+  let decoder = null, decoderKey = '', decodeErrors = 0;
+  let retryAt = 0, lookahead = 1, decodeFps = 0, inflight = 0, lastQueued = -1, lastDone = 0, idleSince = 0;
+  const waits = new Map(); // gop -> { need, got, pending, resolve, reject } while it decodes
+  const busy = new Set(); // gops scheduled but not finished
 
   function ensureDecoder(mp4) {
     const key = mp4.codec + ':' + mp4.description.join(',');
@@ -98,26 +103,30 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
         output: (frame) => {
           if (destroyed) return frame.close();
           const idx = Math.round((frame.timestamp * man.fps) / US);
+          const g = Math.floor(idx / man.gop), w = waits.get(g);
           if (software) {
             // CPU-decoded frames are kept as they are: no GPU copy competing with the compositor
-            const arr = cache.get(Math.floor(idx / man.gop));
+            const arr = cache.get(g);
             if (arr) arr[idx % man.gop] = frame;
             else frame.close();
-            return;
+          } else {
+            const p = createImageBitmap(frame).then(
+              (bmp) => {
+                frame.close();
+                const arr = cache.get(g);
+                if (arr) arr[idx % man.gop] = bmp;
+                else bmp.close();
+              },
+              () => frame.close(),
+            );
+            w?.pending.push(p);
           }
-          const j = job;
-          const p = createImageBitmap(frame).then(
-            (bmp) => {
-              frame.close();
-              const arr = cache.get(Math.floor(idx / man.gop));
-              if (arr) arr[idx % man.gop] = bmp;
-              else bmp.close();
-            },
-            () => frame.close(),
-          );
-          if (j) j.push(p);
+          if (w && ++w.got >= w.need) w.resolve();
         },
-        error: (e) => console.warn('film decoder', e),
+        error: (e) => {
+          console.warn('film decoder', e);
+          for (const w of waits.values()) w.reject(e);
+        },
       });
     }
     decoder.configure({
@@ -139,10 +148,13 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
     ensureDecoder(s.mp4);
     const arr = new Array(man.gop);
     cache.set(g, arr);
-    const pending = [];
-    job = pending;
     const li0 = f0 - s.first;
-    for (let k = 0; k < man.gop && li0 + k < s.count; k++) {
+    const w = { need: Math.min(man.gop, s.count - li0), got: 0, pending: [] };
+    const done = new Promise((resolve, reject) => Object.assign(w, { resolve, reject }));
+    waits.set(g, w);
+    lastQueued = g;
+    const t0 = performance.now();
+    for (let k = 0; k < w.need; k++) {
       const smp = s.mp4.samples[li0 + k];
       decoder.decode(
         new EncodedVideoChunk({
@@ -152,12 +164,24 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
         }),
       );
     }
-    const t0 = performance.now();
-    await decoder.flush();
-    await Promise.all(pending);
-    job = null;
-    // decode throughput (frames per second of decode work), smoothed - the stage paces flights with it
-    const fps = man.gop / Math.max(0.001, (performance.now() - t0) / 1000);
+    // nothing queued behind us after a moment: flush, so frames the decoder holds back come out
+    setTimeout(() => {
+      if (waits.get(g) === w && lastQueued === g && decoder?.state === 'configured') decoder.flush().catch(() => {});
+    }, 45);
+    const stall = setTimeout(() => w.reject(new Error(`film: GOP ${g} stalled`)), 5000);
+    try {
+      await done;
+    } finally {
+      clearTimeout(stall);
+      waits.delete(g);
+    }
+    await Promise.all(w.pending);
+    // throughput in frames per second, smoothed - the stage paces flights with it. With GOPs pipelined,
+    // completions are spaced by decode work alone, unless the pipeline sat idle in between.
+    const now = performance.now();
+    const since = lastDone > idleSince ? lastDone : t0;
+    const fps = w.need / Math.max(0.001, (now - since) / 1000);
+    lastDone = now;
     decodeFps = decodeFps ? decodeFps * 0.7 + fps * 0.3 : fps;
     if (destroyed) {
       for (const b of arr) b?.close();
@@ -168,56 +192,67 @@ export function createPlayer({ canvas, base, onStatus = () => {}, over = 1.04, s
 
   function trimCache() {
     const g = Math.floor(target / man.gop);
-    const keys = [...cache.keys()].sort((a, b) => Math.abs(a - g) - Math.abs(b - g));
+    const keys = [...cache.keys()].filter((k) => !busy.has(k)).sort((a, b) => Math.abs(a - g) - Math.abs(b - g));
     for (const k of keys.slice(Math.max(gopCap, lookahead + 2))) {
       for (const b of cache.get(k)) b?.close();
       cache.delete(k);
     }
   }
 
-  async function pump() {
-    if (decoding || destroyed || !started || mode !== 'webcodecs' || !man || performance.now() < retryAt) return;
+  const free = (n) => n >= 0 && n * man.gop < man.frames && !cache.has(n) && !busy.has(n);
+  function nextWanted() {
     const g = Math.floor(target / man.gop);
-    let want = null;
-    if (!cache.has(g)) want = g;
-    else if (lookahead > 1) {
+    if (free(g)) return g;
+    if (lookahead > 1) {
       // flying: keep several GOPs ready ahead of the playhead
-      for (let k = 1; k <= lookahead && want === null; k++) {
-        const n = g + k * dir;
-        if (n >= 0 && n * man.gop < man.frames && !cache.has(n)) want = n;
-      }
-    } else {
-      const pos = target % man.gop, n = g + (dir > 0 ? 1 : -1);
-      const near = dir > 0 ? pos >= man.gop - 8 : pos <= 7;
-      if (near && n >= 0 && n * man.gop < man.frames && !cache.has(n)) want = n;
+      for (let k = 1; k <= lookahead; k++) if (free(g + k * dir)) return g + k * dir;
+      return null;
     }
-    if (want === null) return;
-    decoding = true;
-    try {
-      await decodeGop(want);
-      decodeErrors = 0;
-      if (bitmapAt(target) || cache.has(want)) first.res();
-    } catch (e) {
-      for (const b of cache.get(want) || []) b?.close();
-      cache.delete(want);
-      job = null;
-      if (e instanceof NetError) {
-        // the network hiccuped: keep the decoder, show what we have and try again shortly
-        decoding = false;
-        setStatus('buffering');
-        retryAt = performance.now() + 900;
-        setTimeout(pump, 950);
-        return;
-      }
-      console.warn('film decode', e);
-      try { decoder?.close(); } catch { /* already closed */ }
-      decoder = null;
-      if (++decodeErrors >= 2) await switchToVideo();
+    const pos = target % man.gop, n = g + (dir > 0 ? 1 : -1);
+    const near = dir > 0 ? pos >= man.gop - 8 : pos <= 7;
+    return near && free(n) ? n : null;
+  }
+
+  function onDecodeFail(g, e) {
+    for (const b of cache.get(g) || []) b?.close();
+    cache.delete(g);
+    if (e instanceof NetError) {
+      // the network hiccuped: keep the decoder, show what we have and try again shortly
+      setStatus('buffering');
+      retryAt = performance.now() + 900;
+      setTimeout(pump, 950);
+      return;
     }
-    decoding = false;
-    if (destroyed) return;
-    draw();
-    pump();
+    if (!decoder) return; // the same failure already counted for another GOP in flight
+    console.warn('film decode', e);
+    try { decoder.close(); } catch { /* already closed */ }
+    decoder = null;
+    if (++decodeErrors >= 2) switchToVideo();
+  }
+
+  function pump() {
+    if (destroyed || !started || mode !== 'webcodecs' || !man || performance.now() < retryAt) return;
+    while (inflight < MAX_INFLIGHT) {
+      const want = nextWanted();
+      if (want === null) return;
+      inflight++;
+      busy.add(want);
+      decodeGop(want)
+        .then(
+          () => {
+            decodeErrors = 0;
+            first.res();
+          },
+          (e) => onDecodeFail(want, e),
+        )
+        .finally(() => {
+          if (--inflight === 0) idleSince = performance.now();
+          busy.delete(want);
+          if (destroyed) return;
+          draw();
+          pump();
+        });
+    }
   }
 
   /* ---------------- <video> fallback ---------------- */

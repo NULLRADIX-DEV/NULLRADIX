@@ -51,16 +51,16 @@ function startFilm(anchors) {
       startStatic(true);
     },
   });
-  stage.add(gate.update);
-  stage.add(createHud());
-  stage.add(createFx());
+  stage.add(gate.update, { always: true });
+  stage.add(createHud(), { always: true });
+  stage.add(createFx(), { always: true });
   stage.add(createHero());
   stage.add(createAbout());
   stage.add(createWork(anchors));
   stage.add(createSkills());
   stage.add(createSwarmLayer());
   stage.add(createContact());
-  stage.add(sound.update);
+  stage.add(sound.update, { always: true });
   motionToggle('Motion on', () => {
     setMotionOverride('0');
     location.reload();

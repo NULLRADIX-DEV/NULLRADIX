@@ -582,3 +582,15 @@ body[data-mode='film'].has-cursor .gate button {
 html.is-gated .cursor {
   display: none !important;
 }
+
+/* fast tab flights: copy, cards and anchored marks step aside while the film races; they return on landing */
+main,
+.anchors,
+.leaders,
+.swarm {
+  transition: opacity 0.45s var(--ease);
+}
+body.is-cruising :is(main, .anchors, .leaders, .swarm) {
+  opacity: 0;
+  transition-duration: 0.18s;
+}

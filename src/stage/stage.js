@@ -127,7 +127,7 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     // the proxy takes over only once it shows the very frame we are on (armed), never a stale one
     flight = { to: target, v: 0, dir: Math.sign(target - t), src: viaProxy ? proxy : player, armed: !viaProxy };
     lenis?.stop();
-    flight.src?.setLookahead(4);
+    flight.src?.setLookahead(flight.src === proxy ? 10 : 4); // the proxy is tiny: decode far ahead
   }
   function land() {
     flight?.src?.setLookahead(1);
@@ -138,13 +138,14 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
   // any input of the visitor's own takes the controls back
   for (const type of ['wheel', 'touchstart', 'keydown'])
     addEventListener(type, (e) => flight && !(type === 'keydown' && e.key === 'Tab') && land(), { ...on, passive: true });
-  const ACCEL = 3.2; // film seconds per second²
+  const ACCEL = 14; // film seconds per second²
   function fly(dt) {
     if (!flight.armed) return; // hold until the proxy shows this frame
     dt = Math.min(dt, 1 / 40); // a hitch slows the flight down for a moment instead of skipping ahead
     const src = flight.src;
-    const rate = src && src.decodeFps ? src.decodeFps : src === proxy ? 240 : 90; // decoded frames per second
-    const vmax = Math.min(8, Math.max(1.5, (0.8 * rate) / W.FPS)); // film seconds per second
+    // decoded frames per second; the proxy is trusted with a floor so a slow first measurement can't hold the start back
+    const rate = src === proxy ? Math.max(360, src.decodeFps || 0) : src && src.decodeFps ? src.decodeFps : 90;
+    const vmax = Math.min(18, Math.max(1.5, (0.8 * rate) / W.FPS)); // film seconds per second
     const remaining = Math.abs(flight.to - t);
     const vWant = Math.min(vmax, Math.sqrt(2 * ACCEL * remaining) + 0.15);
     flight.v += Math.max(-ACCEL * 2 * dt, Math.min(ACCEL * dt, vWant - flight.v));
@@ -152,7 +153,9 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     if ((flight.to - next) * flight.dir <= 0) next = flight.to;
     // frame pacing: hold until the frames we are about to show are decoded
     if (src && src.mode === 'webcodecs') {
-      const f = next * W.FPS, f0 = Math.floor(f), f1 = Math.min(f0 + 1, Math.round(flight.to * W.FPS));
+      // the frames we are about to show: f0, and f0 + 1 to blend towards (never past the landing frame)
+      const toF = Math.round(flight.to * W.FPS);
+      const f = next * W.FPS, f0 = Math.floor(f), f1 = flight.dir > 0 ? Math.min(f0 + 1, toF) : f0 + 1;
       if (!src.has(f0) || (f - f0 > 0.02 && !src.has(f1))) {
         next = t;
         flight.v *= 0.92;
@@ -336,7 +339,13 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
     ctx.intro = !!intro;
     ctx.film = film;
     ctx.dt = dt;
-    for (const fn of subs) fn(ctx);
+    // fast tab flights: the page's copy steps aside (and stops costing frame time); film + HUD run on
+    const cruising = !!(flight && flight.armed && flight.v > 3);
+    if (cruising !== ctx.flying) {
+      ctx.flying = cruising;
+      document.body.classList.toggle('is-cruising', cruising);
+    }
+    for (const sub of subs) if (sub.always || !cruising) sub.fn(ctx);
   }
 
   layout();
@@ -365,8 +374,9 @@ export function createStage({ onStatus = () => {}, onFail = () => {}, hold = Pro
       startIntro();
       raf = requestAnimationFrame(frame);
     },
-    add(fn) {
-      subs.push(fn);
+    /** per-frame subscriber; `always` keeps it running during fast flights (HUD, sound, ...) */
+    add(fn, { always = false } = {}) {
+      subs.push({ fn, always });
     },
     scrollToT,
     pause() {
