@@ -20,6 +20,7 @@ import { createSkills } from './scenes/skills.js';
 import { createContact } from './scenes/contact.js';
 import { createSwarmLayer } from './scenes/swarm.js';
 import { createWordplay } from './scenes/wordplay.js';
+import { createTerminal } from './modules/terminal.js';
 import { createSphereLayer } from './scenes/sphere.js';
 import { createSound } from './audio/sound.js';
 import { pickFormat } from './stage/cover.js';
@@ -34,11 +35,11 @@ function boot() {
   const anchors = renderContent(panel);
   renderDossier(panel);
   wireCopy();
-  if (env.mode === 'film') startFilm(anchors);
+  if (env.mode === 'film') startFilm(anchors, panel);
   else startStatic(false);
 }
 
-function startFilm(anchors) {
+function startFilm(anchors, panel) {
   document.body.dataset.mode = 'film';
   const sound = createSound({ arm: false });
   const gate = createGate({
@@ -68,8 +69,10 @@ function startFilm(anchors) {
   stage.add(createSkills());
   const swarm = createSwarmLayer();
   stage.add(swarm.update);
-  stage.add(createWordplay(swarm));
+  const wordplay = createWordplay(swarm);
+  stage.add(wordplay.update);
   stage.add(createContact());
+  createTerminal({ stage, panel, wordplay, swarm, cut: () => false });
   wireUiSound(sound);
   motionToggle('Motion on', () => {
     setMotionOverride('0');

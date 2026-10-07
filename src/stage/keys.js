@@ -1,13 +1,14 @@
 /**
  * One keyboard router for the film's shortcuts (terminal, director's cut, the wordmark that listens
- * at the end). Handlers run in the order they were added; the first one that returns true takes
- * the key. Nothing fires while the entrance gate or the case dialog is up, or while a text field
- * has focus - those own the keyboard.
+ * at the end). Handlers run by priority (high first); the first one that returns true takes the key.
+ * Nothing fires while the entrance gate or the case dialog is up, or while a text field has focus -
+ * those own the keyboard.
  */
 const handlers = [];
 
-export function onKey(fn) {
-  handlers.push(fn);
+export function onKey(fn, priority = 0) {
+  handlers.push({ fn, priority });
+  handlers.sort((a, b) => b.priority - a.priority);
 }
 
 /** a key that types something: one printable character (AltGr combos included) */
@@ -25,7 +26,7 @@ export function keyboardTaken() {
 addEventListener('keydown', (e) => {
   if (e.defaultPrevented || e.isComposing || keyboardTaken()) return;
   for (const h of handlers) {
-    if (h(e)) {
+    if (h.fn(e)) {
       e.preventDefault();
       return;
     }

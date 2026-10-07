@@ -60,7 +60,7 @@ export function createWordplay(swarm) {
     sfx('type');
     swarm.flare(0.8);
     return true;
-  });
+  }, 5);
 
   // touch: a tap on the wordmark brings up the keyboard
   if (input) {
@@ -81,7 +81,7 @@ export function createWordplay(swarm) {
   }
 
   // the hint above the wordmark, only where there is room for it
-  return () => {
+  function update() {
     const live = swarm.live;
     const want = !live ? '' : buf ? 'Esc to reset' : coarse ? 'Tap the wordmark to type' : 'Type anything';
     if (want && want !== shown) hintText.textContent = want;
@@ -90,5 +90,14 @@ export function createWordplay(swarm) {
     const room = top >= floor;
     show(hint, live && room ? 1 : 0, `translate3d(${((swarm.box.x0 + swarm.box.x1) / 2).toFixed(0)}px,${top.toFixed(0)}px,0) translateX(-50%)`);
     if (!live && buf && swarm.word === 'NULLRADIX') buf = ''; // the film took the wordmark back
+  }
+
+  return {
+    update,
+    /** set the word from code (the terminal's morph command) */
+    say(word) {
+      set(word);
+      swarm.flare(1);
+    },
   };
 }

@@ -331,6 +331,10 @@ export function createSound({ arm = true } = {}) {
       tone('square', 2200, 2200, 0.015, 0.02, uiBus, 0.22);
     }],
     off: [200, () => tone('sine', 900, 120, 0.22, 0.06)],
+    glitch: [300, () => {
+      rewind();
+      for (let i = 0; i < 5; i++) tone('square', 80 + Math.random() * 1800, 60, 0.05, 0.04, uiBus, i * 0.11);
+    }],
   };
   function ui(kind) {
     if (!running || !UI[kind]) return;

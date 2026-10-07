@@ -82,6 +82,7 @@
           <span data-sound-label>Sound off</span>
         </button>
         <button class="hud__btn" type="button" data-motion hidden></button>
+        <button class="hud__btn hud__term" type="button" data-term-open aria-label="Terminal" title="Terminal (~)">&gt;_</button>
         <span class="hud__lens" data-hud-lens aria-hidden="true"></span>
       </div>
       <div class="hud__group hud__group--end" aria-hidden="true">
@@ -250,6 +251,21 @@
       </nav>
       <span><span data-year>2026</span> - built with care</span>
     </footer>
+
+    <div class="term" data-term data-lenis-prevent hidden role="dialog" aria-modal="true" aria-label="Terminal">
+      <div class="term__win">
+        <header class="term__bar">
+          <span class="term__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="term__title">nullradix - tty</span>
+          <button class="term__close" type="button" data-term-close aria-label="Close terminal">esc</button>
+        </header>
+        <div class="term__out" data-term-out aria-live="polite"></div>
+        <form class="term__line" data-term-form autocomplete="off">
+          <label class="term__p" for="term-in">visitor@nullradix:~$</label>
+          <input id="term-in" class="term__in" data-term-in type="text" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        </form>
+      </div>
+    </div>
 
     <div class="panel" data-panel data-lenis-prevent hidden role="dialog" aria-modal="true" aria-labelledby="panel-title">
       <div class="panel__backdrop" data-panel-close></div>
