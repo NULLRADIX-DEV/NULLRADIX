@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/nr-avatar.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0c0c0d" />
+    <title>404 - NULLRADIX</title>
+    <meta name="description" content="Nothing at this coordinate." />
+    <meta name="robots" content="noindex" />
+    <!-- arriving through the lens: stay closed until notfound.js opens it -->
+    <script>try{if(sessionStorage.getItem('nr-iris'))document.documentElement.classList.add('is-arriving')}catch(e){}</script>
+    <script type="module" src="/src/notfound.js"></script>
+  </head>
+
+  <body class="nf">
+    <canvas class="nf__field" data-nf aria-hidden="true"></canvas>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="jump" data-jump hidden aria-hidden="true">
+      <div class="jump__iris"></div>
+      <div class="jump__rim"></div>
+      <span class="jump__line"></span>
+      <span class="jump__cross"></span>
+      <p class="jump__label" data-jump-label></p>
+      <p class="jump__coords" data-jump-coords></p>
+    </div>
+
+    <header class="nf__bar">
+      <a class="nf__brand" href="/" aria-label="NULLRADIX - home">NULLRADIX</a>
+      <span class="nf__xyz" data-nf-xyz aria-hidden="true">x +0000  y +0000</span>
+    </header>
+
+    <main class="nf__main" id="main">
+      <div class="nf__copy">
+        <p class="label">Error 404 <span class="label__sep">/</span> Signal lost</p>
+        <h1 class="nf__title">Nothing at this coordinate.</h1>
+        <p class="nf__path" data-nf-path></p>
+        <a class="btn btn--primary nf__home" href="/">Back to origin</a>
+      </div>
+    </main>
+  </body>
+</html>

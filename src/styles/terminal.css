@@ -1,0 +1,239 @@
+/* ================= the terminal: a glass window that slides up from the bottom ================= */
+.term {
+  position: fixed;
+  inset: 0;
+  z-index: 85; /* over the HUD and the cursor's layer, under the case dialog */
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  padding: 0 16px clamp(72px, 10vh, 110px);
+  background: rgba(12, 12, 13, 0);
+  transition: background var(--dur) var(--ease);
+}
+.term[hidden] {
+  display: none;
+}
+.term.is-open {
+  background: rgba(12, 12, 13, 0.45);
+}
+.term__win {
+  width: min(100%, 46rem);
+  border: 1px solid color-mix(in oklab, var(--c-near) 18%, transparent);
+  border-radius: 14px;
+  background: rgba(19, 19, 21, 0.82);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-family: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--c-near);
+  transform: translateY(24px) scale(0.98);
+  opacity: 0;
+  transition: transform var(--dur) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+.term.is-open .term__win {
+  transform: none;
+  opacity: 1;
+}
+.term__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 10px 14px;
+  border-bottom: 1px solid color-mix(in oklab, var(--c-near) 10%, transparent);
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-mid);
+}
+.term__dots {
+  display: flex;
+  gap: 6px;
+}
+.term__dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--c-far);
+}
+.term__dots i:first-child {
+  background: var(--c-near);
+  border-color: var(--c-near);
+}
+.term__title {
+  margin-right: auto;
+}
+.term__close {
+  padding: 2px 8px;
+  border: 1px solid var(--c-line);
+  border-radius: 20px;
+  background: none;
+  color: var(--c-mid);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.term__close:hover,
+.term__close:focus-visible {
+  color: var(--c-near);
+  border-color: var(--c-near);
+}
+.term__out {
+  height: min(22rem, 42vh);
+  overflow-y: auto;
+  padding: 14px 16px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-far) transparent;
+}
+.term__l {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: color-mix(in oklab, var(--c-near) 82%, var(--c-void));
+}
+.term__l--art {
+  line-height: 1.2;
+}
+.term__l--cmd {
+  color: var(--c-near);
+}
+.term__l--err {
+  color: var(--c-mid);
+}
+.term__p {
+  color: var(--c-mid);
+  white-space: nowrap;
+}
+.term__line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 6px 16px 14px;
+}
+.term__in {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  color: var(--c-near);
+  caret-color: var(--c-near);
+}
+/* key chips in the HUD: the terminal and the director's cut, with their keys */
+.hud__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+.hud__key kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.9em;
+  height: 1.9em;
+  padding: 0 0.35em;
+  border: 1px solid color-mix(in oklab, var(--c-near) 45%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+  font-size: 0.95em;
+  letter-spacing: 0;
+  color: var(--c-near);
+  background: rgba(250, 250, 251, 0.04);
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.hud__key:hover kbd,
+.hud__key:focus-visible kbd,
+.hud__key[aria-pressed='true'] kbd {
+  background: rgba(250, 250, 251, 0.14);
+  border-color: var(--c-near);
+}
+.hud__key.is-calling kbd {
+  animation: key-call 1.1s var(--ease-inout) infinite;
+}
+@keyframes key-call {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 250, 251, 0.5); }
+  50% { box-shadow: 0 0 0 7px rgba(250, 250, 251, 0); background: rgba(250, 250, 251, 0.22); }
+}
+.k-touch {
+  display: none;
+}
+@media (pointer: coarse) {
+  .k-fine {
+    display: none;
+  }
+  .k-touch {
+    display: inline;
+  }
+}
+@media (max-width: 760px) {
+  .hud__key-t {
+    display: none;
+  }
+}
+@media (max-width: 1500px) {
+  .hud__lens {
+    display: none; /* room for the key chips */
+  }
+}
+@media (max-width: 760px) {
+  .term {
+    padding-bottom: 76px;
+  }
+  .term__win {
+    font-size: 0.78rem;
+  }
+  .term__p {
+    display: none;
+  }
+}
+
+/* rm -rf / : the screen tears for a moment */
+html.is-glitch .stage,
+html.is-glitch .hud {
+  animation: glitch 0.9s steps(1) both;
+}
+@keyframes glitch {
+  0% { transform: translate(0, 0); filter: none; }
+  12% { transform: translate(-14px, 3px) skewX(8deg); filter: contrast(1.8) brightness(1.3); }
+  24% { transform: translate(12px, -4px); filter: invert(1); }
+  36% { transform: translate(-6px, 0) skewX(-12deg); filter: contrast(2.2) hue-rotate(90deg); }
+  48% { transform: translate(18px, 6px); filter: invert(1) contrast(1.5); }
+  60% { transform: translate(-3px, -2px) scaleY(1.04); filter: blur(2px); }
+  74% { transform: translate(6px, 0); filter: contrast(1.6); }
+  100% { transform: translate(0, 0); filter: none; }
+}
+
+/* over the window the system cursor comes back (the crosshair lives under it) */
+body[data-mode='film'].has-cursor .term,
+body[data-mode='film'].has-cursor .term * {
+  cursor: auto;
+}
+body[data-mode='film'].has-cursor .term__in {
+  cursor: text;
+}
+body[data-mode='film'].has-cursor .term button {
+  cursor: pointer;
+}
+body[data-mode='static'] .hud__key {
+  display: none;
+}
+
+/* ================= the director's cut: the machinery drawn over a dimmed film ================= */
+.cut {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 46;
+  pointer-events: none;
+}
+.cut[hidden] {
+  display: none;
+}
+html.is-cut .film {
+  filter: grayscale(1) brightness(0.55);
+}

@@ -1,0 +1,84 @@
+{
+ "fps": 30,
+ "frames": 1500,
+ "width": 1600,
+ "height": 900,
+ "gop": 15,
+ "segments": [
+  {
+   "url": "seg-00.mp4",
+   "first": 0,
+   "count": 150,
+   "bytes": 2034183
+  },
+  {
+   "url": "seg-01.mp4",
+   "first": 150,
+   "count": 150,
+   "bytes": 4024991
+  },
+  {
+   "url": "seg-02.mp4",
+   "first": 300,
+   "count": 150,
+   "bytes": 5345213
+  },
+  {
+   "url": "seg-03.mp4",
+   "first": 450,
+   "count": 150,
+   "bytes": 2269160
+  },
+  {
+   "url": "seg-04.mp4",
+   "first": 600,
+   "count": 150,
+   "bytes": 1947659
+  },
+  {
+   "url": "seg-05.mp4",
+   "first": 750,
+   "count": 150,
+   "bytes": 1240256
+  },
+  {
+   "url": "seg-06.mp4",
+   "first": 900,
+   "count": 150,
+   "bytes": 2223811
+  },
+  {
+   "url": "seg-07.mp4",
+   "first": 1050,
+   "count": 150,
+   "bytes": 1354087
+  },
+  {
+   "url": "seg-08.mp4",
+   "first": 1200,
+   "count": 150,
+   "bytes": 1455597
+  },
+  {
+   "url": "seg-09.mp4",
+   "first": 1350,
+   "count": 150,
+   "bytes": 2160952
+  }
+ ],
+ "stills": {
+  "top": "stills/top.webp",
+  "about": "stills/about.webp",
+  "work": "stills/work.webp",
+  "skills": "stills/skills.webp",
+  "contact": "stills/contact.webp"
+ },
+ "thumbs": {
+  "url": "stills/thumbs.webp",
+  "every": 1,
+  "cols": 10,
+  "w": 160,
+  "h": 90,
+  "count": 50
+ }
+}

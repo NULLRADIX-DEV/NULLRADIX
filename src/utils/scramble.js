@@ -4,6 +4,8 @@
  * left→right, so t=0 is fully scrambled and t>=1 is the final text.
  * `createScramble(el)` binds it to a DOM node (used by the experience headings).
  */
+import { sfx } from './sfx.js';
+
 const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&/<>*+=-';
 
 export const SCRAMBLE_MS = 360;
@@ -27,11 +29,18 @@ export function createScramble(elm) {
   const finalText = elm.textContent;
   let raf = 0;
   let start = 0;
+  let locked = 0;
 
   function frame(now) {
     if (!start) start = now;
     const t = Math.min(1, (now - start) / SCRAMBLE_MS);
     elm.textContent = scrambleString(finalText, t);
+    // a key strike each time a glyph locks in (every other one: it is fast)
+    const n = Math.floor(t * finalText.length);
+    if (n > locked) {
+      if (n >> 1 !== locked >> 1) sfx('type');
+      locked = n;
+    }
     if (t < 1) {
       raf = requestAnimationFrame(frame);
     } else {
@@ -49,6 +58,7 @@ export function createScramble(elm) {
       elm.style.whiteSpace = 'nowrap'; // wider random glyphs must never wrap to a 2nd line
       elm.style.width = `${elm.offsetWidth}px`; // pin width before scrambling
       start = 0;
+      locked = 0;
       raf = requestAnimationFrame(frame);
     },
   };

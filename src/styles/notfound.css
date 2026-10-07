@@ -1,0 +1,88 @@
+/* 404: the void, a field of particles forming the number, and a way back */
+@import './tokens.css';
+@import './base.css';
+@import './ui.css';
+@import './jump.css';
+
+.nf {
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--c-void);
+}
+.nf__field {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.nf .grain {
+  position: fixed;
+  inset: -50%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+}
+.nf__bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  padding: clamp(14px, 2.2vw, 34px) clamp(16px, 3vw, 48px);
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-mid);
+}
+.nf__brand {
+  color: var(--c-near);
+  letter-spacing: 0.24em;
+}
+.nf__xyz {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+  white-space: pre;
+}
+.nf__main {
+  position: relative;
+  z-index: 3;
+  min-height: 100vh;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  padding: 0 16px clamp(56px, 12vh, 120px);
+  pointer-events: none;
+}
+.nf__copy {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-4);
+  text-align: center;
+  text-shadow: 0 0 30px rgba(12, 12, 13, 0.85);
+}
+.nf__title {
+  font-family: var(--ff-display);
+  font-size: clamp(1.8rem, 1rem + 3vw, 3.4rem);
+  font-variation-settings: 'wght' 800, 'wdth' 105, 'opsz' 72;
+  color: var(--c-near);
+}
+.nf__path {
+  max-width: 90vw;
+  overflow-wrap: anywhere;
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  letter-spacing: 0.1em;
+  color: var(--c-mid);
+  white-space: pre-wrap;
+}
+.nf__home {
+  margin-top: var(--sp-4);
+  pointer-events: auto;
+}

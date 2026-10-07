@@ -1,0 +1,493 @@
+/* shared UI pieces: buttons, tags, status pulse, contact email, socials, project dialog */
+
+/* ---- status pulse ---- */
+.pulse {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c-near);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-near) 40%, transparent);
+  animation: pulse 2.4s var(--ease) infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-near) 45%, transparent); }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
+}
+
+/* ---- buttons / links ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-6);
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  letter-spacing: 0.04em;
+  border-radius: 40px;
+  border: 1px solid var(--c-line);
+  color: var(--c-near);
+  background: var(--c-surface);
+  transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.btn:hover,
+.btn:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--c-near);
+}
+.btn--primary {
+  background: var(--c-near);
+  color: var(--c-void);
+  border-color: var(--c-near);
+}
+.btn--primary:hover,
+.btn--primary:focus-visible {
+  background: color-mix(in oklab, var(--c-near) 88%, var(--c-void));
+}
+
+/* ---- tags ---- */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+.tag {
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  color: var(--c-mid); /* grey type - subtle base for experience / cards / modal */
+  padding: var(--sp-1) var(--sp-3);
+  border: var(--hairline);
+  border-radius: 30px;
+}
+/* Skills chips stand out; Experience / card / modal chips stay on the subtle base .tag */
+.skill-group__items .tag {
+  color: var(--c-near); /* white type */
+  background: color-mix(in oklab, var(--c-near) 8%, transparent); /* faint raised chip */
+  border-color: color-mix(in oklab, var(--c-near) 20%, transparent);
+  transition: transform var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.skill-group__items .tag:hover {
+  transform: translateY(-2px); /* lift */
+  border-color: var(--c-near); /* border -> full white */
+  background: color-mix(in oklab, var(--c-near) 14%, transparent); /* fill brightens */
+}
+
+.contact__email {
+  position: relative;
+  isolation: isolate;
+  font-family: var(--ff-display);
+  font-size: var(--fs-600);
+  font-variation-settings: 'wght' 500, 'wdth' 100;
+  letter-spacing: -0.02em;
+  color: var(--c-near);
+  width: fit-content;
+  transform-origin: left center;
+  background: linear-gradient(var(--c-near), var(--c-near)) no-repeat left bottom / 0% 2px;
+  transition: background-size var(--dur) var(--ease), font-variation-settings var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+/* glow bound to the glyphs: a duplicate of the text, lit, revealed only
+   through a narrow mask band that sweeps across again and again */
+.contact__email::before {
+  content: attr(data-text);
+  position: absolute;
+  /* grow the box outward, then pad the text back into place, so the mask
+     (clipped to border-box) doesn't slice the glow where the letters end */
+  inset: -0.7em -0.95em;
+  padding: 0.7em 0.95em;
+  z-index: -1;
+  pointer-events: none;
+  color: var(--c-near);
+  font-variation-settings: inherit;
+  text-shadow:
+    0 0 6px color-mix(in oklab, var(--c-near) 85%, transparent),
+    0 0 16px color-mix(in oklab, var(--c-near) 55%, transparent),
+    0 0 30px color-mix(in oklab, var(--c-near) 35%, transparent);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), font-variation-settings var(--dur) var(--ease);
+  -webkit-mask-image: linear-gradient(100deg,
+    transparent 42%, rgba(0, 0, 0, 0.55) 48%, #000 50%, rgba(0, 0, 0, 0.55) 52%, transparent 58%);
+  mask-image: linear-gradient(100deg,
+    transparent 42%, rgba(0, 0, 0, 0.55) 48%, #000 50%, rgba(0, 0, 0, 0.55) 52%, transparent 58%);
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 100% 0;
+  mask-position: 100% 0;
+}
+.contact__email:hover,
+.contact__email:focus-visible {
+  background-size: 100% 2px;
+  font-variation-settings: 'wght' 800, 'wdth' 120;
+  transform: scale(1.06);
+}
+.contact__email:hover::before,
+.contact__email:focus-visible::before {
+  opacity: 1;
+  animation: email-sweep 2.6s linear infinite;
+}
+@keyframes email-sweep {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .contact__email { transform: none !important; }
+  .contact__email::before { animation: none; opacity: 0; }
+}
+.socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-6);
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+}
+.socials a {
+  color: var(--c-mid);
+  display: inline-flex;
+  gap: var(--sp-2);
+  transition: color var(--dur-fast) var(--ease);
+}
+.socials a::after {
+  content: '↗';
+  color: var(--c-far);
+}
+.socials a:hover,
+.socials a:focus-visible {
+  color: var(--c-near);
+}
+
+/* ---- detail panel ---- */
+.panel {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-panel);
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+}
+.panel[hidden] {
+  display: none;
+}
+.panel__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--c-void) 78%, transparent);
+  backdrop-filter: blur(0);
+  opacity: 0;
+  transition: opacity var(--dur-modal) var(--ease), backdrop-filter var(--dur-modal) var(--ease);
+}
+.panel.is-open .panel__backdrop {
+  opacity: 1;
+  backdrop-filter: blur(6px);
+}
+.panel__card {
+  position: relative;
+  width: min(100%, 40rem);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: var(--sp-8);
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  box-shadow: 0 30px 90px -20px #000;
+  /* JS sets --ox/--oy to the clicked name's position so the card grows out of it */
+  transform-origin: var(--ox, 50%) var(--oy, 0%);
+  transform: translateY(8px) scale(0.86);
+  opacity: 0;
+  transition: opacity var(--dur-modal) var(--ease), transform var(--dur-modal) var(--ease-inout);
+}
+.panel.is-open .panel__card {
+  transform: none;
+  opacity: 1;
+}
+/* the card is a tabindex=-1 container, not a control - no focus ring on it
+   (the close button and links keep theirs); kills the white outline on open */
+.panel__card:focus {
+  outline: none;
+}
+/* faint L-shaped corner ticks - graphing-instrument detail */
+.panel__card::before,
+.panel__card::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--c-line);
+  pointer-events: none;
+}
+.panel__card::before {
+  top: var(--sp-3);
+  left: var(--sp-3);
+  border-right: 0;
+  border-bottom: 0;
+}
+.panel__card::after {
+  right: var(--sp-3);
+  bottom: var(--sp-3);
+  border-left: 0;
+  border-top: 0;
+}
+
+/* content reveal - the typed fields (index/title/meta/blurb) reveal per-char via
+   the JS typewriter; everything carrying .panel__reveal fades up on open instead. */
+.panel__reveal {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--dur-modal) var(--ease), transform var(--dur-modal) var(--ease);
+  transition-delay: var(--rd, 0ms);
+}
+.panel.is-open .panel__reveal {
+  opacity: 1;
+  transform: none;
+}
+
+.panel__close {
+  position: absolute;
+  top: var(--sp-4);
+  right: var(--sp-6);
+  z-index: 1;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--c-mid);
+  transition: color var(--dur-fast) var(--ease);
+}
+.panel__close:hover,
+.panel__close:focus-visible {
+  color: var(--c-near);
+}
+
+/* header band: oversized index numeral, total, eyebrow */
+.panel__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-4);
+  border-bottom: var(--hairline);
+}
+.panel__num {
+  font-family: var(--ff-display);
+  font-size: clamp(3rem, 2rem + 6vw, 5rem);
+  font-variation-settings: 'wght' 700, 'wdth' 75;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-near);
+}
+.panel__total {
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  letter-spacing: 0.06em;
+  color: var(--c-far);
+}
+.panel__eyebrow {
+  margin-left: auto;
+  align-self: center;
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-far);
+}
+
+/* title + status badge */
+.panel__titlerow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3) var(--sp-4);
+  margin-top: var(--sp-6);
+}
+.panel__title {
+  min-width: 0;
+  font-family: var(--ff-display);
+  font-size: var(--fs-400);
+  font-variation-settings: 'wght' 700, 'wdth' 110;
+  line-height: 1.05;
+  color: var(--c-near);
+}
+.panel__status {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border: var(--hairline);
+  border-radius: 30px;
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--c-mid);
+}
+.panel__status[hidden] {
+  display: none;
+}
+.panel__status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.panel__status[data-status='live'] {
+  color: var(--c-near);
+}
+.panel__status[data-status='live']::before {
+  animation: panel-pulse 1.8s ease-out infinite;
+}
+.panel__status[data-status='wip'] {
+  color: var(--c-mid);
+}
+.panel__status[data-status='archived'] {
+  color: var(--c-far);
+}
+.panel__status[data-status='archived']::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+@keyframes panel-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 55%, transparent); }
+  70% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.panel__meta {
+  margin-top: var(--sp-2);
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  letter-spacing: 0.06em;
+  color: var(--c-mid);
+}
+.panel__blurb {
+  margin-top: var(--sp-4);
+  max-width: var(--measure);
+  line-height: 1.6;
+  color: var(--c-muted);
+}
+.panel__card .tags {
+  margin-top: var(--sp-6);
+}
+.panel__links {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-top: var(--sp-6);
+}
+
+/* prev / next footer */
+.panel__nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-6);
+  border-top: var(--hairline);
+}
+.panel__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+  color: var(--c-mid);
+  transition: color var(--dur-fast) var(--ease);
+}
+.panel__nav-btn:hover,
+.panel__nav-btn:focus-visible {
+  color: var(--c-near);
+}
+.panel__nav-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.panel__nav-btn--next .panel__nav-col {
+  align-items: flex-end;
+}
+.panel__nav-label {
+  font-family: var(--ff-label);
+  font-size: var(--fs-100);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-far);
+}
+.panel__nav-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ff-display);
+  font-variation-settings: 'wght' 600, 'wdth' 100;
+  color: inherit;
+}
+.panel__nav-arrow {
+  font-size: var(--fs-400);
+  line-height: 1;
+  color: var(--c-far);
+  transition: transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.panel__nav-btn:hover .panel__nav-arrow,
+.panel__nav-btn:focus-visible .panel__nav-arrow {
+  color: var(--c-mid);
+}
+.panel__nav-btn:hover .panel__nav-arrow {
+  transform: translateX(-2px);
+}
+.panel__nav-btn--next:hover .panel__nav-arrow {
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel__status[data-status='live']::before {
+    animation: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .work-item {
+    grid-template-columns: auto 1fr;
+    gap: var(--sp-3) var(--sp-4);
+  }
+  .work-item__meta {
+    grid-column: 2;
+    flex-direction: row;
+    align-items: center;
+    align-self: start;
+  }
+}
+
+@media (max-width: 520px) {
+  /* email must never overflow (body has overflow-x:hidden, would silently clip) */
+  .contact__email {
+    font-size: clamp(1.4rem, 7.5vw, 1.9rem);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .contact__email:hover,
+  .contact__email:focus-visible {
+    transform: none; /* scale(1.06) would push past the edge */
+  }
+
+  .work-item {
+    padding: var(--sp-6) var(--sp-1);
+  }
+  .work-item__title {
+    font-size: var(--fs-300); /* fs-400 is too big on a phone */
+  }
+  .panel__card {
+    padding: var(--sp-8) var(--sp-6);
+  }
+  .panel__title {
+    font-size: clamp(1.6rem, 8vw, 2.4rem);
+  }
+}

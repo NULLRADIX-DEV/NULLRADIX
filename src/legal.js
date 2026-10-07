@@ -8,6 +8,20 @@ import './styles/legal.css';
 import '@fontsource-variable/roboto-flex/full.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/space-grotesk';
+import { wirePageJumps, takeArrival } from './modules/pagejump.js';
 
 const year = document.querySelector('[data-year]');
 if (year) year.textContent = String(new Date().getFullYear());
+
+// the lens between pages: open if we arrived through it, close it when leaving to another page
+const arrival = takeArrival();
+let motion = !matchMedia('(prefers-reduced-motion: reduce)').matches || !!arrival;
+try {
+  motion ||= sessionStorage.getItem('nr-motion') === '1';
+} catch {
+  /* no session */
+}
+if (motion) {
+  const jump = wirePageJumps();
+  if (arrival) jump.arrive({ ...arrival, ready: () => document.fonts.ready });
+}

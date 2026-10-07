@@ -69,7 +69,7 @@ export const projects = [
     id: "fluidsim",
     name: "Fluid Sim",
     blurb:
-      "A real-time 2D fluid sandbox in pure C++ - up to 10k particles with grid-accelerated collisions, fixed-step physics and interactive mouse forces, software-rendered on raw Win32/GDI with no engine.",
+      "A real-time 2D fluid sandbox in pure C++ - runs smoothly with up to 100k particles, grid-accelerated collisions, fixed-step physics and interactive mouse forces, software-rendered on raw Win32/GDI with no engine.",
     tech: ["C++", "Win32", "GDI"],
     year: 2025,
     links: { repo: "https://github.com/Tr1sma/FluidSimCpp" },
@@ -131,6 +131,17 @@ export const about = {
     },
   ],
 };
+
+/**
+ * The words slamming through the code bore (as in the 30 s film), each with the stack behind it.
+ * @type {{k:string, v:string}[]}
+ */
+export const disciplines = [
+  { k: 'Frontend', v: 'Blazor · Vanilla JS · CSS · GSAP' },
+  { k: 'Backend', v: '.NET 10 · ASP.NET Core · EF Core · SignalR' },
+  { k: 'Mobile', v: '.NET MAUI · Blazor Hybrid · SQLite' },
+  { k: 'Infrastructure', v: 'CI/CD · Containers · Zero-downtime deploys' },
+];
 
 /** @type {string[]} words riding the marquee band under the hero */
 export const marquee = [
@@ -224,4 +235,4 @@ export const socials = [
   },
 ];
 
-export default { profile, axes, about, projects, marquee, skills, experience, socials };
+export default { profile, axes, about, disciplines, projects, marquee, skills, experience, socials };

@@ -1,0 +1,649 @@
+/* ================= the index: the film's content as one readable page, after the credits =================
+   Film mode only - the static page already is this. It rises over the last frame: a long fade from
+   transparent into the void, then plain type on hairlines. */
+.dossier {
+  display: none;
+}
+body[data-mode='film'] .dossier {
+  display: block;
+  position: relative;
+  z-index: 4; /* over the fixed scene layers, under the HUD, the jump and the dialog */
+  padding: 32vh var(--gutter) var(--sp-24);
+  background: linear-gradient(rgba(12, 12, 13, 0), rgba(12, 12, 13, 0.88) 17vh, var(--c-void) 32vh);
+}
+
+/* over the index the HUD bars get a floor of void, so reading text never runs under them */
+.hud::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+.hud--top::before {
+  bottom: -28px;
+  background: linear-gradient(var(--c-void) 62%, rgba(12, 12, 13, 0));
+}
+.hud--bottom::before {
+  top: -28px;
+  background: linear-gradient(rgba(12, 12, 13, 0), var(--c-void) 38%);
+}
+body[data-on-index] .hud--top::before,
+body[data-index-rising] .hud--bottom::before {
+  opacity: 1;
+}
+.dossier__in {
+  width: min(100%, var(--container));
+  margin-inline: auto;
+}
+
+/* the cue to the index: one line under the closing contact block; on wide screens it sits above the
+   HUD's clock at the right instead, so the block keeps its room under the wordmark */
+.more {
+  display: none;
+}
+body[data-mode='film'] .more {
+  position: absolute;
+  left: 50%;
+  top: var(--top, 85vh);
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 4px 10px;
+  white-space: nowrap;
+  color: var(--c-mid);
+  transition: color var(--dur-fast) var(--ease);
+}
+body[data-mode='film'] .more:hover,
+body[data-mode='film'] .more:focus-visible {
+  color: var(--c-near);
+}
+.more__arrow {
+  display: inline-block;
+  animation: more-bob 1.8s var(--ease-inout) infinite;
+}
+@keyframes more-bob {
+  0%, 100% { transform: translateY(-2px); opacity: 0.45; }
+  50% { transform: translateY(3px); opacity: 1; }
+}
+@media (min-width: 1100px) and (min-aspect-ratio: 17/20) {
+  body[data-mode='film'] .more {
+    position: fixed;
+    top: auto;
+    left: auto;
+    right: clamp(16px, 3vw, 48px);
+    bottom: calc(clamp(14px, 2.2vw, 34px) + 30px); /* just above the clock and the timeline */
+    translate: 10px 0;
+  }
+}
+
+/* the wordmark listens: a hint above it, and a hidden field that brings up a phone's keyboard */
+.wordplay,
+.wordplay__input {
+  display: none;
+}
+body[data-mode='film'] .wordplay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 7px 14px 7px 8px;
+  border: 1px solid color-mix(in oklab, var(--c-near) 22%, transparent);
+  border-radius: 40px;
+  background: rgba(12, 12, 13, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  white-space: nowrap;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-near);
+}
+.wordplay kbd,
+.hint kbd,
+.dossier__keys kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.9em;
+  height: 1.9em;
+  padding: 0 0.35em;
+  border: 1px solid color-mix(in oklab, var(--c-near) 45%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+  font-size: 0.95em;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--c-near);
+  background: rgba(250, 250, 251, 0.06);
+}
+.wordplay.is-calling {
+  animation: call 1.1s var(--ease-inout) infinite;
+}
+@keyframes call {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 250, 251, 0.35); }
+  50% { box-shadow: 0 0 0 9px rgba(250, 250, 251, 0); border-color: var(--c-near); }
+}
+.wordplay__caret {
+  width: 0.7em;
+  height: 1.5px;
+  align-self: flex-end;
+  margin-bottom: 0.25em;
+  background: var(--c-near);
+  animation: caret 1.05s steps(1) infinite;
+}
+
+/* the hints for what is hidden (hints.js): a card above the HUD, bottom left */
+.hint {
+  position: fixed;
+  left: clamp(16px, 3vw, 48px);
+  bottom: clamp(64px, 8vh, 96px);
+  z-index: 52;
+  display: flex;
+  align-items: stretch;
+  max-width: min(30rem, calc(100vw - 32px));
+  border: 1px solid color-mix(in oklab, var(--c-near) 28%, transparent);
+  border-radius: 12px;
+  background: rgba(19, 19, 21, 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.hint[hidden] {
+  display: none;
+}
+.hint.is-in {
+  opacity: 1;
+  transform: none;
+}
+.hint__go {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  padding: 12px 6px 12px 14px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-family: var(--ff-label);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--c-near);
+  cursor: pointer;
+}
+.hint__go kbd {
+  font-size: 1.05em;
+  animation: key-call 1.1s var(--ease-inout) infinite;
+}
+.hint__x {
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  color: var(--c-mid);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.hint__x:hover,
+.hint__x:focus-visible {
+  color: var(--c-near);
+}
+body[data-mode='film'].has-cursor .hint,
+body[data-mode='film'].has-cursor .hint * {
+  cursor: pointer;
+}
+
+/* the index lists them too */
+.dossier__keys {
+  margin-top: var(--sp-6);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-8);
+  font-family: var(--ff-label);
+  font-size: 0.88rem;
+  color: var(--c-muted);
+}
+.dossier__keys > span:not(.label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+.dossier__keys code {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+  color: var(--c-near);
+}
+@keyframes caret {
+  50% { opacity: 0; }
+}
+body[data-mode='film'] .wordplay__input {
+  display: block;
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px; /* no zoom on focus */
+  pointer-events: none;
+}
+
+/* ---- head ---- */
+.dossier__title {
+  margin-top: var(--sp-4);
+  font-family: var(--ff-display);
+  font-size: clamp(2.6rem, 1.2rem + 5vw, 6rem);
+  font-variation-settings: 'wght' 800, 'wdth' 100, 'opsz' 144;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  color: var(--c-near);
+}
+.dossier__who {
+  margin-top: var(--sp-6);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-8);
+  font-family: var(--ff-label);
+  font-size: var(--fs-200);
+  color: var(--c-muted);
+}
+.dossier__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--c-near);
+}
+.dossier__facts {
+  margin-top: var(--sp-12);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-block: var(--hairline);
+}
+.dossier__fact {
+  padding: var(--sp-6) var(--sp-6) var(--sp-6) 0;
+}
+.dossier__fact + .dossier__fact {
+  padding-left: var(--sp-6);
+  border-left: var(--hairline);
+}
+.dossier__fact dd {
+  margin-top: var(--sp-2);
+  font-family: var(--ff-display);
+  font-size: var(--fs-600);
+  font-variation-settings: 'wght' 300, 'wdth' 100, 'opsz' 144;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--c-near);
+}
+
+/* ---- blocks ---- */
+.dossier__block {
+  margin-top: var(--sp-24);
+}
+.dossier__bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-4);
+  border-bottom: var(--hairline);
+}
+.dossier__bar h3 {
+  color: var(--c-near);
+}
+.dossier__film {
+  flex: none;
+  transition: color var(--dur-fast) var(--ease);
+}
+.dossier__film:hover,
+.dossier__film:focus-visible {
+  color: var(--c-near);
+}
+
+/* about */
+.dossier__about {
+  margin-top: var(--sp-8);
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: var(--sp-12);
+}
+.dossier__lead {
+  max-width: 30ch;
+  font-family: var(--ff-display);
+  font-size: clamp(1.35rem, 1rem + 1.1vw, 2rem);
+  font-variation-settings: 'wght' 450, 'wdth' 100, 'opsz' 72;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--c-near);
+}
+.dossier__tenets > div {
+  padding-block: var(--sp-4);
+  border-bottom: var(--hairline);
+}
+.dossier__tenets > div:first-child {
+  padding-top: 0;
+}
+.dossier__tenets dt {
+  color: var(--c-near);
+}
+.dossier__tenets dd {
+  margin-top: var(--sp-2);
+  color: var(--c-muted);
+}
+.dossier__disciplines {
+  margin-top: var(--sp-12);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-6);
+}
+.dossier__disciplines li {
+  padding-top: var(--sp-4);
+  border-top: 1px solid color-mix(in oklab, var(--c-near) 30%, transparent);
+}
+.dossier__dk {
+  margin-top: var(--sp-2);
+  font-family: var(--ff-display);
+  font-size: var(--fs-300);
+  font-variation-settings: 'wght' 750, 'wdth' 110, 'opsz' 72;
+  color: var(--c-near);
+}
+.dossier__dv {
+  margin-top: var(--sp-2);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--c-muted);
+}
+
+/* work: numbered rows, the whole row opens the case */
+.dossier__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5rem 1fr 11rem;
+  gap: var(--sp-6);
+  padding: var(--sp-8) var(--sp-4) var(--sp-8) 0;
+  border-bottom: var(--hairline);
+  transition: background var(--dur) var(--ease);
+}
+.dossier__row::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: var(--sp-8);
+  bottom: var(--sp-8);
+  width: 2px;
+  background: var(--c-near);
+  transform: scaleY(0);
+  transition: transform var(--dur) var(--ease);
+}
+.dossier__row:hover,
+.dossier__row:focus-within {
+  background: color-mix(in oklab, var(--c-near) 3%, transparent);
+}
+.dossier__row:hover::before,
+.dossier__row:focus-within::before {
+  transform: scaleY(1);
+}
+.dossier__n {
+  font-family: var(--ff-display);
+  font-size: var(--fs-600);
+  font-variation-settings: 'wght' 200, 'wdth' 100, 'opsz' 144;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.85;
+  color: var(--c-far);
+  transition: color var(--dur) var(--ease), font-variation-settings var(--dur) var(--ease);
+}
+.dossier__row:hover .dossier__n,
+.dossier__row:focus-within .dossier__n {
+  color: var(--c-near);
+  font-variation-settings: 'wght' 700, 'wdth' 120, 'opsz' 144;
+}
+.dossier__name {
+  font-family: var(--ff-display);
+  font-size: var(--fs-400);
+  font-variation-settings: 'wght' 650, 'wdth' 95, 'opsz' 72;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.dossier__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-variation-settings: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  color: var(--c-near);
+  cursor: pointer;
+}
+.dossier__open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.dossier__open > span {
+  color: var(--c-far);
+  transition: color var(--dur-fast) var(--ease);
+}
+.dossier__row:hover .dossier__open > span {
+  color: var(--c-near);
+}
+.dossier__blurb {
+  margin-top: var(--sp-3);
+  max-width: 62ch;
+  color: var(--c-muted);
+}
+.dossier__side {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  gap: var(--sp-2);
+  text-align: right;
+}
+.dossier__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--c-near);
+}
+.dossier__state::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.dossier__state[data-status='wip']::before {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+.dossier__links {
+  position: relative;
+  z-index: 1; /* over the row's hit area */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: var(--sp-2) var(--sp-4);
+  margin-top: var(--sp-2);
+}
+.dossier__links a {
+  color: var(--c-near);
+  border-bottom: 1px solid var(--c-far);
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.dossier__links a:hover,
+.dossier__links a:focus-visible {
+  border-color: var(--c-near);
+}
+
+/* skills */
+.dossier__skills {
+  margin-top: var(--sp-8);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--sp-8) var(--sp-6);
+}
+.dossier__group h4 {
+  padding-bottom: var(--sp-3);
+  border-bottom: var(--hairline);
+}
+.dossier__chips {
+  margin-top: var(--sp-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.dossier__chips li {
+  padding: 0.3rem 0.8rem;
+  font-family: var(--ff-label);
+  font-size: 0.88rem;
+  color: var(--c-near);
+  background: color-mix(in oklab, var(--c-near) 8%, transparent);
+  border: 1px solid color-mix(in oklab, var(--c-near) 20%, transparent);
+  border-radius: 30px;
+}
+
+/* track record */
+.dossier__stint {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: var(--sp-6);
+  padding-block: var(--sp-8);
+  border-bottom: var(--hairline);
+}
+.dossier__range {
+  padding-top: 0.4em;
+  color: var(--c-near);
+}
+.dossier__role {
+  font-family: var(--ff-display);
+  font-size: var(--fs-300);
+  font-variation-settings: 'wght' 620, 'wdth' 95, 'opsz' 72;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--c-near);
+}
+.dossier__org {
+  color: var(--c-mid);
+  font-variation-settings: 'wght' 400, 'wdth' 95, 'opsz' 72;
+}
+.dossier__summary {
+  margin-top: var(--sp-2);
+  max-width: 64ch;
+  color: var(--c-muted);
+}
+.dossier__stint .tags {
+  margin-top: var(--sp-3);
+}
+
+/* contact */
+.dossier__ask {
+  margin-top: var(--sp-12);
+  font-family: var(--ff-display);
+  font-size: var(--fs-400);
+  font-variation-settings: 'wght' 800, 'wdth' 110, 'opsz' 72;
+  line-height: 1;
+  color: var(--c-near);
+}
+.dossier__email {
+  display: inline-block;
+  margin-top: var(--sp-6);
+}
+.dossier__reach {
+  margin-top: var(--sp-8);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-6) var(--sp-8);
+}
+.dossier__socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4) var(--sp-8);
+  font-family: var(--ff-label);
+  font-size: var(--fs-200);
+}
+.dossier__socials a {
+  display: inline-flex;
+  gap: var(--sp-2);
+  color: var(--c-near);
+}
+.dossier__socials a::after {
+  content: '↗';
+  color: var(--c-far);
+  transition: color var(--dur-fast) var(--ease);
+}
+.dossier__socials a:hover::after,
+.dossier__socials a:focus-visible::after {
+  color: var(--c-near);
+}
+.dossier__handle {
+  color: var(--c-mid);
+}
+
+/* ---- narrow screens ---- */
+@media (max-width: 760px) {
+  body[data-mode='film'] .dossier {
+    padding-top: 28vh;
+  }
+  .dossier__facts {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dossier__fact:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .dossier__fact:nth-child(n + 3) {
+    border-top: var(--hairline);
+  }
+  .dossier__about {
+    grid-template-columns: 1fr;
+    gap: var(--sp-8);
+  }
+  .dossier__disciplines {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dossier__row {
+    grid-template-columns: 2.6rem 1fr;
+    gap: var(--sp-3) var(--sp-4);
+    padding-right: 0;
+  }
+  .dossier__n {
+    font-size: var(--fs-300);
+    line-height: 1.4;
+  }
+  .dossier__side {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: start;
+    gap: var(--sp-2) var(--sp-4);
+    text-align: left;
+  }
+  .dossier__links {
+    margin-top: 0;
+  }
+  .dossier__stint {
+    grid-template-columns: 1fr;
+    gap: var(--sp-2);
+  }
+  .dossier__bar {
+    align-items: center;
+  }
+}
+@media (max-width: 420px) {
+  .dossier__disciplines {
+    grid-template-columns: 1fr;
+  }
+}

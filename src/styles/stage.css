@@ -1,0 +1,692 @@
+/* ============ the stage: film canvas + marks anchored into its camera ============ */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--c-void);
+}
+.film {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  will-change: transform;
+}
+.film--fx {
+  visibility: hidden; /* shown only while a speed effect runs */
+}
+.swarm {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+/* reading light: a soft darkening where the copy sits, faded per scene from JS-free CSS states */
+.shade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 0% 50%, rgba(12, 12, 13, 0.62), transparent 60%),
+    linear-gradient(transparent 70%, rgba(12, 12, 13, 0.5));
+  opacity: 0.85;
+}
+.leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  overflow: visible;
+}
+.leaders path {
+  fill: none;
+  stroke: var(--c-near);
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  opacity: 0;
+}
+.leaders circle {
+  fill: var(--c-void);
+  stroke: var(--c-near);
+  stroke-width: 1.5;
+  opacity: 0;
+}
+
+.anchors {
+  position: absolute;
+  inset: 0;
+}
+.anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-mid);
+  will-change: transform, opacity;
+  text-shadow: 0 0 18px rgba(12, 12, 13, 0.9);
+}
+.anchor--origin {
+  letter-spacing: 0.12em;
+  color: var(--c-mid);
+}
+.anchor--axis {
+  margin-left: -6em;
+  width: 12em;
+  text-align: center;
+  margin-top: -2.4em;
+  color: var(--c-near);
+}
+.anchor--node {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9em;
+  margin-left: 14px;
+  margin-top: -0.6em;
+  letter-spacing: 0.16em;
+}
+.anchor__n {
+  color: var(--c-mid);
+}
+.anchor__name {
+  color: var(--c-near);
+}
+.anchor__coord {
+  display: none;
+  color: var(--c-far);
+  text-transform: none;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+.anchors.is-plot .anchor__coord {
+  display: inline;
+}
+.anchors.is-plot .anchor--node {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.anchors.is-plot .anchor--node:hover .anchor__coord {
+  color: var(--c-near);
+}
+
+/* ============ ambient ============ */
+.ghost {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: none;
+  place-items: center;
+  pointer-events: none;
+  font-family: var(--ff-display);
+  font-size: 38vw;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--c-ghost);
+  font-variation-settings: 'wght' 800, 'wdth' 55;
+  user-select: none;
+}
+.grain {
+  position: fixed;
+  inset: -50%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+}
+body[data-mode='film'] .grain {
+  animation: grain 0.9s steps(6) infinite;
+}
+@keyframes grain {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-3%, 2%, 0); }
+  40% { transform: translate3d(2%, -4%, 0); }
+  60% { transform: translate3d(-4%, -1%, 0); }
+  80% { transform: translate3d(3%, 3%, 0); }
+  100% { transform: translate3d(1%, -2%, 0); }
+}
+.flash {
+  display: none;
+}
+
+/* chromatic split on display type, driven by the film's impacts (--ca, px) */
+:root {
+  --ca: 0;
+  --px: 0;
+  --py: 0;
+}
+.ca {
+  text-shadow:
+    calc(var(--ca) * 1px) 0 0 rgba(255, 60, 60, 0.55),
+    calc(var(--ca) * -1px) 0 0 rgba(60, 220, 255, 0.55),
+    0 0 40px rgba(12, 12, 13, 0.75);
+}
+
+/* ============ cursor ============ */
+.cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 70;
+  pointer-events: none;
+  display: none;
+}
+body[data-mode='film'].has-cursor .cursor {
+  display: block;
+}
+body[data-mode='film'].has-cursor,
+body[data-mode='film'].has-cursor * {
+  cursor: none;
+}
+body[data-mode='film'].has-cursor .panel,
+body[data-mode='film'].has-cursor .panel * {
+  cursor: auto;
+}
+body[data-mode='film'].has-cursor .panel a,
+body[data-mode='film'].has-cursor .panel button {
+  cursor: pointer;
+}
+.cursor.is-out {
+  opacity: 0 !important;
+}
+.cursor__cross {
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
+  scale: calc(1 + var(--pulse, 0) * 0.6); /* it jumps with the sound */
+  transition: transform var(--dur-fast) var(--ease);
+}
+.cursor__cross::before,
+.cursor__cross::after {
+  content: '';
+  position: absolute;
+  background: var(--c-near);
+}
+.cursor__cross::before {
+  left: 0;
+  right: 0;
+  top: 9.5px;
+  height: 1px;
+}
+.cursor__cross::after {
+  top: 0;
+  bottom: 0;
+  left: 9.5px;
+  width: 1px;
+}
+.cursor.is-link .cursor__cross {
+  transform: rotate(45deg) scale(1.5);
+}
+.cursor__label {
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  white-space: pre;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-near);
+  text-shadow: 0 0 12px rgba(12, 12, 13, 0.9);
+}
+
+/* ============ HUD ============ */
+.hud {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-6);
+  padding: clamp(14px, 2.2vw, 34px) clamp(16px, 3vw, 48px);
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-mid);
+  pointer-events: none;
+  text-shadow: 0 0 16px rgba(12, 12, 13, 0.85);
+}
+.hud a,
+.hud button {
+  pointer-events: auto;
+}
+.hud--top {
+  top: 0;
+}
+.hud--bottom {
+  bottom: 0;
+  align-items: flex-end;
+}
+.hud__brand {
+  color: var(--c-near);
+  letter-spacing: 0.24em;
+}
+.hud__nav {
+  display: flex;
+  gap: clamp(var(--sp-4), 2.4vw, var(--sp-8));
+  margin-right: auto;
+  margin-left: clamp(var(--sp-6), 6vw, 7rem);
+}
+.hud__nav a {
+  position: relative;
+  transition: color var(--dur-fast) var(--ease);
+}
+.hud__nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0.2em;
+  bottom: -6px;
+  height: 1px;
+  background: var(--c-near);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur) var(--ease);
+}
+.hud__nav a:hover,
+.hud__nav a:focus-visible,
+.hud__nav a[aria-current] {
+  color: var(--c-near);
+}
+.hud__nav a[aria-current]::after {
+  transform: scaleX(1);
+}
+.hud__readout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 22ch;
+}
+.hud__xyz {
+  color: var(--c-near);
+  text-transform: none;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+.hud__group {
+  display: flex;
+  align-items: center;
+  gap: clamp(var(--sp-4), 2vw, var(--sp-8));
+}
+.hud__group--end {
+  justify-content: flex-end;
+}
+.hud__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--c-mid);
+  padding: 6px 0;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease);
+}
+.hud__btn:hover,
+.hud__btn:focus-visible,
+.hud__btn[aria-pressed='true'] {
+  color: var(--c-near);
+}
+.hud__eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+.hud__eq i {
+  width: 2px;
+  height: 3px;
+  background: currentColor;
+  transition: height var(--dur-fast) var(--ease);
+}
+.hud__btn[data-running] .hud__eq i {
+  animation: eq 0.9s var(--ease-inout) infinite alternate;
+}
+.hud__btn[data-running] .hud__eq i:nth-child(2) { animation-delay: -0.3s; }
+.hud__btn[data-running] .hud__eq i:nth-child(3) { animation-delay: -0.6s; }
+.hud__btn[data-running] .hud__eq i:nth-child(4) { animation-delay: -0.45s; }
+@keyframes eq {
+  from { height: 2px; }
+  to { height: 16px; }
+}
+/* driven by the real bands (react.js) once the sound runs */
+.hud__eq.is-live i {
+  height: 16px;
+  transform-origin: 50% 100%;
+  animation: none !important;
+  transition: none;
+}
+.hud__lens,
+.hud__time,
+.hud__buffer {
+  text-transform: none;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+.hud__time {
+  color: var(--c-near);
+}
+.hud__bar {
+  position: relative;
+  width: clamp(80px, 10vw, 160px);
+  height: 1px;
+  background: var(--c-line);
+  overflow: hidden;
+  align-self: center;
+}
+.hud__bar i {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.hud__loaded {
+  background: var(--c-far);
+}
+.hud__progress {
+  background: var(--c-near);
+}
+
+/* ============ the timeline scrubber ============ */
+.scrub {
+  position: relative;
+  align-self: center;
+  padding: 9px 0;
+  margin: -9px 0;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: none;
+  outline-offset: 6px;
+}
+.scrub .hud__bar {
+  display: block;
+  width: clamp(160px, 22vw, 380px);
+  transition: height var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.scrub:hover .hud__bar,
+.scrub:focus-visible .hud__bar,
+.scrub.is-hover .hud__bar {
+  height: 3px;
+}
+.scrub__marks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0;
+  pointer-events: none;
+}
+.scrub__mark {
+  position: absolute;
+  top: -4px;
+  width: 1px;
+  height: 9px;
+  background: var(--c-mid);
+}
+.scrub__mark--minor {
+  top: -2px;
+  height: 5px;
+  background: var(--c-far);
+}
+.scrub__tip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  pointer-events: none;
+}
+.scrub.is-hover .scrub__tip {
+  opacity: 1;
+  transform: none;
+}
+.scrub__thumb {
+  border: 1px solid color-mix(in oklab, var(--c-near) 30%, transparent);
+  border-radius: 4px;
+  background-color: var(--c-void);
+  background-repeat: no-repeat;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+.scrub__label {
+  white-space: nowrap;
+  color: var(--c-near);
+  letter-spacing: 0.14em;
+}
+/* phones: the timeline runs the full width along the bottom edge, under the buttons */
+@media (max-width: 760px) {
+  .hud--bottom {
+    padding-bottom: 30px;
+  }
+  .scrub {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 2px;
+    margin: 0;
+    padding: 10px 0;
+  }
+  .scrub .hud__bar {
+    width: 100%;
+  }
+}
+@media (max-width: 760px) {
+  .hud,
+  .hud__group {
+    gap: var(--sp-4);
+  }
+  /* phones keep the nav; the camera readout makes room for it */
+  .hud__nav {
+    margin-left: auto;
+    margin-right: 0;
+    gap: var(--sp-3);
+    letter-spacing: 0.1em;
+  }
+  .hud__readout {
+    display: none;
+  }
+  .hud__lens,
+  .hud__buffer {
+    display: none;
+  }
+}
+/* small phones: brand and five tabs still fit on one line */
+@media (max-width: 420px) {
+  .hud--top {
+    gap: 10px;
+  }
+  .hud__brand {
+    letter-spacing: 0.12em;
+  }
+  .hud__nav {
+    gap: 9px;
+    letter-spacing: 0.04em;
+  }
+}
+@media (max-width: 350px) {
+  .hud--top {
+    font-size: 0.62rem;
+  }
+}
+
+/* ============ entrance ============ */
+html.is-gated {
+  overflow: hidden;
+}
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  text-align: center;
+}
+.gate[hidden] {
+  display: none;
+}
+/* the crosshair sits on the exact centre, where the film's origin appears */
+.gate__origin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transition: opacity 0.9s var(--ease);
+}
+.gate__cross {
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--c-near), var(--c-near)) center / 100% 1.5px no-repeat,
+    linear-gradient(var(--c-near), var(--c-near)) center / 1.5px 100% no-repeat;
+  animation: gate-breathe 2.4s var(--ease-inout) infinite;
+}
+.gate__cross::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid var(--c-near);
+  border-radius: 50%;
+}
+@keyframes gate-breathe {
+  50% { transform: scale(1.18); opacity: 0.7; }
+}
+.gate__coord {
+  position: absolute;
+  left: 16px;
+  top: 10px;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.12em;
+  color: var(--c-mid);
+  white-space: nowrap;
+}
+.gate__brand,
+.gate__enter,
+.gate__mute,
+.gate__load {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  transition: opacity 0.6s var(--ease), transform 0.9s var(--ease);
+}
+.gate__brand {
+  top: calc(50% + 56px);
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: clamp(1rem, 0.8rem + 0.8vw, 1.35rem);
+  letter-spacing: 0.6em;
+  margin-right: -0.6em;
+  color: var(--c-near);
+}
+.gate__enter {
+  top: calc(50% + 112px);
+  position: absolute;
+  overflow: hidden;
+  min-width: 13rem;
+  padding: 1rem 2.6rem;
+  border: 1px solid color-mix(in oklab, var(--c-near) 45%, transparent);
+  border-radius: 40px;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-200);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--c-near);
+  background: rgba(12, 12, 13, 0.6);
+  transition: opacity 0.6s var(--ease), transform 0.9s var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.gate__fill {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--c-near) 12%, transparent);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.gate__label {
+  position: relative;
+  margin-right: -0.4em;
+}
+.gate__enter:hover,
+.gate__enter:focus-visible {
+  color: var(--c-void);
+  border-color: var(--c-near);
+}
+.gate__enter:hover .gate__fill,
+.gate__enter:focus-visible .gate__fill {
+  transform: none !important;
+  background: var(--c-near);
+}
+.gate__mute {
+  top: calc(50% + 186px);
+  padding: 6px 10px;
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-mid);
+}
+.gate__mute:hover,
+.gate__mute:focus-visible {
+  color: var(--c-near);
+}
+.gate__load {
+  bottom: clamp(70px, 10vh, 120px);
+  font-family: var(--ff-label);
+  font-weight: 600;
+  font-size: var(--fs-100);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-far);
+  font-variant-numeric: tabular-nums;
+}
+.gate.is-gone {
+  pointer-events: none;
+}
+.gate.is-leaving .gate__origin {
+  opacity: 0;
+}
+.gate.is-leaving :is(.gate__brand, .gate__enter, .gate__mute, .gate__load) {
+  opacity: 0;
+  transform: translateY(24px);
+}
+body[data-mode='film'].has-cursor .gate,
+body[data-mode='film'].has-cursor .gate * {
+  cursor: auto;
+}
+body[data-mode='film'].has-cursor .gate button {
+  cursor: pointer;
+}
+html.is-gated .cursor {
+  display: none !important;
+}
