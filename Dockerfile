@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build && test -f dist/index.html
 
 # nginx ohne root: läuft als uid 101 auf Port 8080, pid und Temp-Dateien in /tmp.
-FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
+FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03 AS runtime
 USER root
 # pinned to base nginx 1.30.6 so apk never downgrades it, build fails once that changes
 RUN if [ "$NGINX_VERSION" != "1.30.6" ]; then \
