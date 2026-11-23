@@ -11,8 +11,7 @@ RUN npm run build && test -f dist/index.html
 # nginx ohne root: läuft als uid 101 auf Port 8080, pid und Temp-Dateien in /tmp.
 FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
 USER root
-# Workaround for vulnerable nginx 1.30.6 in the base image, pinned to that version: the build fails once the base image
-# ships any other nginx, because apk would silently downgrade it. Then remove this workaround (keep apk upgrade if needed).
+# pinned to base nginx 1.30.6 so apk never downgrades it, build fails once that changes
 RUN if [ "$NGINX_VERSION" != "1.30.6" ]; then \
       echo "ERROR: base image ships nginx $NGINX_VERSION, not 1.30.6. Remove the nginx 1.30.7 workaround from the Dockerfile." >&2; \
       exit 1; \
