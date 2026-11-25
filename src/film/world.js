@@ -145,9 +145,10 @@ export const PORTAL_Z = tubeZ(16.8);
 
 // tour order (smooth flight path); ids + coords mirror src/data/content.js (guarded by a test)
 const TOUR = [
-  ['kosguardian', { x: 62, y: -85 }],
+  ['harness', { x: -40, y: -58 }],
   ['fluidsim', { x: 45, y: -72 }],
   ['nuget', { x: 72, y: -30 }],
+  ['edvaniq', { x: 70, y: 16 }],
   ['noose', { x: 48, y: 45 }],
   ['bookheart', { x: -28, y: 68 }],
   ['nullradix', { x: -80, y: 48 }],
@@ -157,9 +158,11 @@ export const NODES = TOUR.map(([id, coord]) => {
   const pos = planeAt(coord);
   return { id, coord, pos, top: add3(pos, [0, -PILLAR_H, 0]) };
 });
+// the tour always fills 19..31 s, more projects just means shorter stops
+export const STOP_LEN = 12 / NODES.length;
 export const STOPS = NODES.map((n, i) => {
-  const t0 = 19 + i * 2;
-  return { id: n.id, t0, tHold: t0 + 0.9, t1: t0 + 2 };
+  const t0 = 19 + i * STOP_LEN;
+  return { id: n.id, t0, tHold: t0 + 0.45 * STOP_LEN, t1: t0 + STOP_LEN };
 });
 
 // axis ends of the work plane: x = Frontend (-) / Backend (+), y (= world -z) = Infrastructure (-) / Product (+)
@@ -343,7 +346,7 @@ export function makeWorld(fmt = 'l') {
   const breakoutEnd = () => shot(E1, E1_TGT, F0);
 
   /* project stops */
-  const AZ = [0.35, -0.25, 0.45, 0.3, -0.3, -0.45];
+  const AZ = [-0.35, -0.25, 0.45, 0.4, 0.3, -0.3, -0.45];
   function stopShot(i, u) {
     const focus = add3(NODES[i].pos, [0, -300, 0]);
     const eye = orbit(focus, AZ[i] + (u - 0.5) * 0.24, 0.34, 1100 * pk(1.45));
@@ -356,7 +359,7 @@ export function makeWorld(fmt = 'l') {
     return m;
   }
   function workShot(t) {
-    const i = clamp(Math.floor((t - 19) / 2), 0, STOPS.length - 1);
+    const i = clamp(Math.floor((t - 19) / STOP_LEN), 0, STOPS.length - 1);
     const s = STOPS[i];
     if (t < s.tHold) return hop(i ? stopShot(i - 1, 1) : breakoutEnd(), stopShot(i, 0), eIO(P(t, s.t0, s.tHold)));
     return stopShot(i, P(t, s.tHold, s.t1));
@@ -419,7 +422,7 @@ export function makeWorld(fmt = 'l') {
     if (t < 16.8) return tubeShot(t);
     if (t < 19.0) return breakoutShot(t);
     if (t < 31.0) return workShot(t);
-    if (t < 32.6) return mixShot(stopShot(5, 1), plotShot(0), eIO(P(t, 31.0, 32.6)));
+    if (t < 32.6) return mixShot(stopShot(STOPS.length - 1, 1), plotShot(0), eIO(P(t, 31.0, 32.6)));
     if (t < 34.0) return plotShot(P(t, 32.6, 34.0));
     if (t < 35.2) return mixShot(plotShot(1), skillShot(0), eIO(P(t, 34.0, 35.2)));
     if (t < 39.2) return skillShot(P(t, 35.2, 39.2));
