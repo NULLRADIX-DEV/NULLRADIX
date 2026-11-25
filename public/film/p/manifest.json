@@ -9,61 +9,61 @@
    "url": "seg-00.mp4",
    "first": 0,
    "count": 150,
-   "bytes": 1995744
+   "bytes": 1996193
   },
   {
    "url": "seg-01.mp4",
    "first": 150,
    "count": 150,
-   "bytes": 4193865
+   "bytes": 4183047
   },
   {
    "url": "seg-02.mp4",
    "first": 300,
    "count": 150,
-   "bytes": 5682452
+   "bytes": 5675875
   },
   {
    "url": "seg-03.mp4",
    "first": 450,
    "count": 150,
-   "bytes": 2342398
+   "bytes": 2382644
   },
   {
    "url": "seg-04.mp4",
    "first": 600,
    "count": 150,
-   "bytes": 1918496
+   "bytes": 1884390
   },
   {
    "url": "seg-05.mp4",
    "first": 750,
    "count": 150,
-   "bytes": 1283945
+   "bytes": 1380130
   },
   {
    "url": "seg-06.mp4",
    "first": 900,
    "count": 150,
-   "bytes": 2035410
+   "bytes": 2027846
   },
   {
    "url": "seg-07.mp4",
    "first": 1050,
    "count": 150,
-   "bytes": 780996
+   "bytes": 781615
   },
   {
    "url": "seg-08.mp4",
    "first": 1200,
    "count": 150,
-   "bytes": 1136133
+   "bytes": 1142869
   },
   {
    "url": "seg-09.mp4",
    "first": 1350,
    "count": 150,
-   "bytes": 1851128
+   "bytes": 1852530
   }
  ],
  "stills": {

@@ -49,21 +49,32 @@ export const projects = [
     year: 2026,
     status: "live",
     links: {
-      live: "https://demo.noose.info",
+      live: "https://demo.fibhq.com",
       repo: "https://github.com/NULLRADIX-DEV/NOOSE-Website",
     },
     coord: { x: 48, y: 45 }, // backend-heavy product (Backend + Product quadrant)
   },
   {
-    id: "kosguardian",
-    name: "KoSGuardian",
+    id: "edvaniq",
+    name: "Edvaniq",
     blurb:
-      "A user-mode anti-cheat for Windows in pure C++ - layered runtime scanning of memory, modules, threads, IAT and inline hooks, with code-integrity checks, anti-debugging, a trusted-module catalog and a watchdog, all hidden behind API hashing and string obfuscation.",
-    tech: ["C++", "Win32"],
+      "A learning app that turns your own material into topics, questions and a daily plan - AI analysis of texts and PDFs, practice with instant feedback and mastery tracking, built as event-driven microservices on .NET Aspire.",
+    tech: ["C#", ".NET 10", "Aspire", "Blazor", "NATS", "MySQL"],
     year: 2026,
     status: "wip",
-    links: { repo: "https://github.com/Tr1sma/AntiCheat-KoSGuardian" },
-    coord: { x: 62, y: -85 }, // low-level Windows security / systems internals (Backend + Infrastructure)
+    links: { repo: "https://github.com/NULLRADIX-DEV/Edvaniq" },
+    coord: { x: 70, y: 16 }, // distributed backend behind a learning product, Backend + Product
+  },
+  {
+    id: "harness",
+    name: "NULLRADIX Harness",
+    blurb:
+      "A local workbench for running many Claude Code sessions in parallel - a task board, one git worktree per session, a dispatcher that hands out the work, and a desktop app to steer it all.",
+    tech: ["Rust", "Tauri", "React", "TypeScript"],
+    year: 2026,
+    status: "wip",
+    links: { repo: "https://github.com/NULLRADIX-DEV/NULLRADIX-Harness" },
+    coord: { x: -40, y: -58 }, // desktop dev tooling, Frontend + Infrastructure
   },
   {
     id: "fluidsim",
